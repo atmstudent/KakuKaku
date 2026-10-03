@@ -119,6 +119,8 @@ fun setupMojiscopeDatabasesAndFiles(context: Context)
         val filesAndPaths = hashMapOf(
                 JMDICT_DATABASE_NAME to context.filesDir.absolutePath)
 
+        deleteOutdatedDatabases(context)
+
         if (shouldResetData(filesAndPaths))
         {
             Log.d(TAG, "Resetting Data")
@@ -137,6 +139,20 @@ fun setupMojiscopeDatabasesAndFiles(context: Context)
     {
         Toast.makeText(context, "Unable to setup Mojiscope database", Toast.LENGTH_LONG).show()
         return
+    }
+}
+
+/**
+ * The bundled database is versioned by file name, so an app update that ships a newer one leaves
+ * the previous copy behind; remove it (and its journal files) to free the space.
+ */
+fun deleteOutdatedDatabases(context: Context)
+{
+    context.filesDir.listFiles()?.filter {
+        it.name.startsWith("DB_") && it.name.contains("Dict-") && !it.name.startsWith(JMDICT_DATABASE_NAME)
+    }?.forEach {
+        Log.d(TAG, "Deleting outdated database ${it.name}")
+        it.delete()
     }
 }
 

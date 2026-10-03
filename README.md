@@ -6,7 +6,7 @@ Mojiscope is a fast, powerful Japanese dictionary that stays on top of all your 
 
 ## Dictionaries
 
-Mojiscope ships with JMdict and KANJIDIC data from **February 2019**. You can import newer or additional dictionaries from the three-dot menu on the home screen, under **Dictionaries**. There you can also choose which dictionary is used for word lookups. Kanji information always comes from the built-in dictionary.
+Mojiscope ships with JMdict and KANJIDIC data from **October 2026**. You can import newer or additional dictionaries from the three-dot menu on the home screen, under **Dictionaries**. There you can also choose which dictionary is used for word lookups. Kanji information always comes from the built-in dictionary.
 
 ### Format
 
@@ -37,3 +37,21 @@ The dictionaries listed on the [Yomitan wiki](https://yomitan.wiki/dictionaries/
 - **CC-CEDICT** (Chinese to English): <https://github.com/MarvNC/cc-cedict-yomitan>.
 
 Mojiscope itself works offline and never downloads anything: get the `.zip` with a browser, then import it from the Dictionaries screen.
+
+### Rebuilding the bundled dictionary
+
+The bundled database is generated from the official JMdict and KANJIDIC2 files. To update it:
+
+1. Download and unpack `JMdict_e.gz` (<http://ftp.edrdg.org/pub/Nihongo/JMdict_e.gz>) and `kanjidic2.xml.gz` (<http://www.edrdg.org/kanjidic/kanjidic2.xml.gz>).
+2. Run the generator, which takes about ten seconds:
+
+   ```bash
+   MOJI_JMDICT_XML=/path/to/JMdict_e \
+   MOJI_KANJIDIC_XML=/path/to/kanjidic2.xml \
+   MOJI_DB_OUT=/path/to/DB_MojiDict-YYYY-MM-DD.db \
+   ./gradlew testDebugUnitTest --tests app.mojiscope.GenerateDictionary
+   ```
+
+3. Put the result in `app/src/main/assets/`, replacing the old file, and set `JMDICT_DATABASE_NAME` in `Constants.kt` to the new file name. The name is the database's version: a changed name makes the app copy the new database and delete the old one.
+
+JMdict and KANJIDIC are the property of the Electronic Dictionary Research and Development Group and are used under their [licence](https://www.edrdg.org/edrdg/licence.html).

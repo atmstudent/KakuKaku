@@ -6,15 +6,18 @@ import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.support.ConnectionSource;
+import com.j256.ormlite.support.DatabaseConnection;
 import com.j256.ormlite.table.TableUtils;
 
-import org.junit.Ignore;
+import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 import org.kxml2.io.KXmlParser;
 import org.xmlpull.v1.XmlPullParser;
 
 import java.io.File;
-import java.io.FileInputStream;
+import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.SQLException;
@@ -22,6 +25,7 @@ import java.sql.SQLException;
 import app.mojiscope.Database.IDatabaseHelper;
 import app.mojiscope.Database.JmDictDatabase.Models.EntryOptimized;
 import app.mojiscope.XmlParsers.JmDict.JmParser;
+import app.mojiscope.XmlParsers.KanjiDict2.Kd2Parser;
 
 public class GenerateDictionary
 {
@@ -41,38 +45,76 @@ public class GenerateDictionary
     }
 
     /**
-     * This isn't actually a test, it generates the SQLite dictionary for the Mojiscope app
-     * I'm just too lazy to have it be in another project so it's in this here as a
-     * test instead. Sorry.
-     *
-     * Wtf fuck Android this doesn't even work.
-     *
-     * @throws Exception
+     * Reads an XML file without its DOCTYPE block. The embedded DTD (entity declarations and long
+     * comments) is more than the parser copes with; the dictionary parsers read entities such as
+     * &n; themselves, so the declarations are not needed.
      */
-    @Ignore("Dev tool: generates the dictionary DB from local XML files")
+    private static String withoutDoctype(String path) throws Exception
+    {
+        String xml = new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8);
+
+        int start = xml.indexOf("<!DOCTYPE");
+        if (start < 0) return xml;
+
+        int bracket = xml.indexOf('[', start);
+        int firstClose = xml.indexOf('>', start);
+        int end = (bracket >= 0 && bracket < firstClose) ? xml.indexOf("]>", bracket) + 2 : firstClose + 1;
+
+        return xml.substring(0, start) + xml.substring(end);
+    }
+
+    /**
+     * This isn't actually a test: it generates the SQLite dictionary bundled with the app from the
+     * official JMdict and KANJIDIC2 XML files (decompressed). It is skipped unless the environment
+     * variable MOJI_DB_OUT is set:
+     *
+     *   MOJI_JMDICT_XML    path of JMdict_e (decompressed)
+     *   MOJI_KANJIDIC_XML  path of kanjidic2.xml (decompressed)
+     *   MOJI_DB_OUT        path of the database to create
+     *
+     *   ./gradlew testDebugUnitTest --tests app.mojiscope.GenerateDictionary
+     *
+     * See README.md ("Rebuilding the bundled dictionary").
+     */
     @Test
     public void generateDic() throws Exception {
 
-        String dbPath = "D:/Dev/MojiscopeFiles/moji_edict.sqlite";
-        String xmlPath = "D:/Dev/MojiscopeFiles/JMdictOriginal.xml";
-        String databaseUrl = String.format("jdbc:sqlite:%s", dbPath);
+        String dbPath = System.getenv("MOJI_DB_OUT");
+        Assume.assumeTrue("MOJI_DB_OUT is not set", dbPath != null);
+
+        String jmdictPath = System.getenv("MOJI_JMDICT_XML");
+        String kanjidicPath = System.getenv("MOJI_KANJIDIC_XML");
+        Assert.assertNotNull("MOJI_JMDICT_XML is not set", jmdictPath);
+        Assert.assertNotNull("MOJI_KANJIDIC_XML is not set", kanjidicPath);
+
+        // Without these every inserted row is its own synced transaction, which takes hours
+        String databaseUrl = String.format("jdbc:sqlite:%s?journal_mode=MEMORY&synchronous=OFF", dbPath);
 
         Files.deleteIfExists(Paths.get(dbPath));
-
-        FileInputStream mDictXml = new FileInputStream(xmlPath);
-        XmlPullParser mParser = new KXmlParser();
-        mParser.setInput(mDictXml, null);
 
         ConnectionSource connectionSource = null;
         try
         {
             connectionSource = new JdbcConnectionSource(databaseUrl);
+
             TableUtils.createTable(connectionSource, EntryOptimized.class);
 
             DatabaseHelperImpl dbHelper = new DatabaseHelperImpl(connectionSource);
 
-            JmParser jmParser = new JmParser(dbHelper);
-            jmParser.parseDict(mParser);
+            XmlPullParser jmdictParser = new KXmlParser();
+            jmdictParser.setInput(new StringReader(withoutDoctype(jmdictPath)));
+            new JmParser(dbHelper).parseDict(jmdictParser);
+
+            XmlPullParser kanjidicParser = new KXmlParser();
+            kanjidicParser.setInput(new StringReader(withoutDoctype(kanjidicPath)));
+            new Kd2Parser(dbHelper).parseDict(kanjidicParser);
+
+            // What Android's SQLiteOpenHelper expects to find in a prebuilt database (version 1, see JmDatabaseHelper)
+            DatabaseConnection connection = connectionSource.getReadWriteConnection(null);
+            connection.executeStatement("CREATE TABLE android_metadata (locale TEXT)", DatabaseConnection.DEFAULT_RESULT_FLAGS);
+            connection.executeStatement("INSERT INTO android_metadata VALUES ('en_US')", DatabaseConnection.DEFAULT_RESULT_FLAGS);
+            connection.executeStatement("PRAGMA user_version = 1", DatabaseConnection.DEFAULT_RESULT_FLAGS);
+
         } finally {
             if (connectionSource != null) {
                 connectionSource.close();

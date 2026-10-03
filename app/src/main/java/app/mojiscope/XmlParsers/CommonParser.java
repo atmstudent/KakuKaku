@@ -53,7 +53,9 @@ public class CommonParser {
                     sb.append(parser.getText());
                     break;
                 case XmlPullParser.ENTITY_REF:
-                    sb.append(parser.getText().trim());
+                    // The text is null when the entity is not declared (the DOCTYPE may have been stripped); use its name then
+                    String entityText = parser.getText();
+                    sb.append(entityText != null ? entityText.trim() : parser.getName());
                     break;
             }
             parser.nextToken();

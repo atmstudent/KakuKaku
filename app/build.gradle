@@ -45,6 +45,10 @@ android {
 
     testOptions {
         unitTests.returnDefaultValues = true
+        // GenerateDictionary parses the whole of JMdict
+        unitTests.all {
+            maxHeapSize = '3g'
+        }
     }
 }
 

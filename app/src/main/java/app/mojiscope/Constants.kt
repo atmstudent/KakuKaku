@@ -4,7 +4,7 @@ package app.mojiscope
 
 // Thanks to the fact that SqliteOpenHelper.onUpgrade() doesn't work (due to multi-threading and getDao() being called before onUpgrade()),
 // we version/upgrade the DBs by changing the name. Lol. Should probably fix this if this becomes an issue in the future.
-const val JMDICT_DATABASE_NAME = "DB_KakuDict-02-16-2019.db"
+const val JMDICT_DATABASE_NAME = "DB_MojiDict-2026-10-03.db"
 const val SCREENSHOT_FOLDER_NAME = "screenshots"
 
 const val DB_SPLIT_CHAR = "\ufffc"
