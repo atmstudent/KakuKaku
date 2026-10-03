@@ -137,11 +137,16 @@ object YomitanParser
             val glossary = glossaryText(glossaryItems)
             if (glossary.isEmpty()) continue
 
+            // JMdict builds start the tags with the sense number, and carry a table of alternative forms
+            // as a separate "forms" row that has no meaning of its own: drop both
+            val tagTokens = a[2].text().split(" ").filter { it.isNotEmpty() && !it.all { c -> c.isDigit() } }
+            if ("forms" in tagTokens) continue
+
             val reading = a[1].text().let { if (it == term) "" else it }
             val score = if (a[4].isJsonPrimitive) a[4].asDouble.toInt() else 0
             val sequence = if (a[5].isJsonArray && a.size() > 6 && a[6].isJsonPrimitive) a[6].asLong else 0L
 
-            rows.add(ImportedTerm(term, reading, a[2].text().trim(), a[3].text().trim(), score, sequence, glossary))
+            rows.add(ImportedTerm(term, reading, tagTokens.joinToString(" "), a[3].text().trim(), score, sequence, glossary))
         }
 
         return rows
@@ -222,7 +227,18 @@ object YomitanParser
         {
             e == null || e.isJsonNull -> return
             e.isJsonPrimitive -> sb.append(e.asString)
-            e.isJsonArray -> for (child in e.asJsonArray) append(sb, child)
+            e.isJsonArray ->
+            {
+                // Separate the items of a list ("food; foodstuff") instead of running them together
+                var previousWasListItem = false
+                for (child in e.asJsonArray)
+                {
+                    val isListItem = child.isJsonObject && child.asJsonObject.string("tag") == "li"
+                    if (isListItem && previousWasListItem) sb.append("; ")
+                    append(sb, child)
+                    previousWasListItem = isListItem
+                }
+            }
             e.isJsonObject ->
             {
                 val obj = e.asJsonObject
@@ -237,8 +253,11 @@ object YomitanParser
         }
     }
 
+    private val WHITESPACE = Regex("\\s+")
+    private val SPACE_BEFORE_SEMICOLON = Regex(" ;")
+
     private fun collapse(text: String): String
     {
-        return text.replace(Regex("\\s+"), " ").trim()
+        return text.replace(WHITESPACE, " ").replace(SPACE_BEFORE_SEMICOLON, ";").trim()
     }
 }

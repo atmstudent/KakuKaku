@@ -147,6 +147,20 @@ class YomitanParserTest
     }
 
     @Test
+    fun dropsSenseNumbersFromTagsAndFormsRows()
+    {
+        val (_, count, rows) = parse(mapOf(
+                "index.json" to """{"title":"JMdict","format":3}""",
+                "term_bank_1.json" to """[
+                    ["食べる","たべる","1 v1 vt","v1",0,["to eat"],1,""],
+                    ["食べる","たべる","forms","",0,[{"type":"structured-content","content":"table of forms"}],1,""]
+                ]"""))
+
+        assertEquals(1, count)
+        assertEquals("v1 vt", rows[0].tags)
+    }
+
+    @Test
     fun flattensStructuredContent()
     {
         val content = JsonParser.parseString("""[
@@ -156,6 +170,6 @@ class YomitanParserTest
             {"tag":"ruby","content":["漢",{"tag":"rt","content":"かん"}]}
         ]""")
 
-        assertEquals("start one two b 漢", YomitanParser.flatten(content))
+        assertEquals("start one; two b 漢", YomitanParser.flatten(content))
     }
 }

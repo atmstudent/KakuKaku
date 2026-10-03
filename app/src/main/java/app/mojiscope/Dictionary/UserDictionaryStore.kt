@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import android.util.Log
 import app.mojiscope.DB_SPLIT_CHAR
 import app.mojiscope.Database.JmDictDatabase.Models.EntryOptimized
 import app.mojiscope.MOJI_PREF_FILE
@@ -68,10 +69,16 @@ class UserDictionaryStore private constructor(context: Context) : SQLiteOpenHelp
     fun import(openStream: () -> InputStream, onProgress: (Int) -> Unit): ImportResult
     {
         val db = writableDatabase
+        val startTime = System.nanoTime()
+        var insertNanos = 0L
+
         db.beginTransaction()
         try
         {
             var imported = 0
+
+            // Building the index once at the end is much faster than maintaining it for every inserted row
+            db.execSQL("DROP INDEX IF EXISTS terms_lookup")
 
             // Reads the title first so an unusable file fails before anything is written
             val title = YomitanParser.readIndex(openStream).title
@@ -84,6 +91,7 @@ class UserDictionaryStore private constructor(context: Context) : SQLiteOpenHelp
             val statement = db.compileStatement("INSERT INTO terms (dict_id, term, reading, tags, rules, score, sequence, glossary) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
 
             val (meta, count) = YomitanParser.parse(openStream) { rows ->
+                val insertStart = System.nanoTime()
                 for (row in rows)
                 {
                     statement.clearBindings()
@@ -98,6 +106,7 @@ class UserDictionaryStore private constructor(context: Context) : SQLiteOpenHelp
                     statement.executeInsert()
                 }
 
+                insertNanos += System.nanoTime() - insertStart
                 imported += rows.size
                 onProgress(imported)
             }
@@ -110,8 +119,11 @@ class UserDictionaryStore private constructor(context: Context) : SQLiteOpenHelp
 
             // Replace older copies of the same dictionary
             val replaced = ArrayList<Long>()
-            db.rawQuery("SELECT id FROM dictionaries WHERE title = ? AND id != ?", arrayOf(meta.title, dictId.toString())).use { c ->
-                while (c.moveToNext()) replaced.add(c.getLong(0))
+            db.rawQuery("SELECT id, title FROM dictionaries WHERE id != ?", arrayOf(dictId.toString())).use { c ->
+                while (c.moveToNext())
+                {
+                    if (sameDictionary(c.getString(1), meta.title)) replaced.add(c.getLong(0))
+                }
             }
             for (old in replaced)
             {
@@ -119,13 +131,28 @@ class UserDictionaryStore private constructor(context: Context) : SQLiteOpenHelp
                 db.delete("dictionaries", "id = ?", arrayOf(old.toString()))
             }
 
+            db.execSQL("CREATE INDEX terms_lookup ON terms (dict_id, term)")
+
             db.setTransactionSuccessful()
+
+            val totalMs = (System.nanoTime() - startTime) / 1_000_000
+            Log.d(TAG, "Imported $count entries of \"${meta.title}\" in $totalMs ms (inserting: ${insertNanos / 1_000_000} ms)")
             return ImportResult(UserDictionary(dictId, meta.title, meta.revision, count), replaced)
         }
         finally
         {
             db.endTransaction()
         }
+    }
+
+    /**
+     * Daily builds put the date in the title ("JMdict [2026-10-03]"), so a trailing [...] is ignored
+     * when deciding whether an imported dictionary is a newer copy of an installed one.
+     */
+    private fun sameDictionary(a: String, b: String): Boolean
+    {
+        val suffix = Regex("\\s*\\[[^\\]]*\\]\\s*$")
+        return a.replace(suffix, "").trim().equals(b.replace(suffix, "").trim(), ignoreCase = true)
     }
 
     /**
@@ -177,6 +204,8 @@ class UserDictionaryStore private constructor(context: Context) : SQLiteOpenHelp
 
     companion object
     {
+        private const val TAG = "UserDictionaryStore"
+
         @Volatile
         private var instance: UserDictionaryStore? = null
 

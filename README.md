@@ -14,7 +14,7 @@ Mojiscope reads dictionaries in the **Yomitan (formerly Yomichan) format**: a si
 
 | File | Required | Used for |
 |------|----------|----------|
-| `index.json` | yes | Title and revision. Importing a dictionary with the same `title` as an installed one **replaces** it, which is how you update a dictionary. |
+| `index.json` | yes | Title and revision. Importing a dictionary with the same `title` as an installed one **replaces** it, which is how you update a dictionary. A date in square brackets at the end of the title, as in `JMdict [2026-10-03]`, is ignored for this comparison. |
 | `term_bank_1.json`, `term_bank_2.json`, … | one of these two | Words: written form, reading, tags and definitions. Formats 1 to 3 are supported. Definitions given as text or as structured content are converted to plain text; images are ignored. |
 | `kanji_bank_1.json`, … | one of these two | Single kanji with their on/kun readings and meanings. |
 
