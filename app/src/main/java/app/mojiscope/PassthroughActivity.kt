@@ -41,7 +41,10 @@ class PassthroughActivity : AppCompatActivity()
             }
         }
 
-        if (processText != null)
+        // Line breaks (e.g. from selecting stacked vertical text) would show up as empty character boxes
+        processText = processText?.replace(Regex("[\\r\\n\\u2028\\u2029]+"), "")
+
+        if (!processText.isNullOrEmpty())
         {
             val windowCoordinator = WindowCoordinator(applicationContext)
             val infoWindow = windowCoordinator.getWindow(WINDOW_INFO) as InformationWindow

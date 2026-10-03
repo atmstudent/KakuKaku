@@ -64,47 +64,51 @@
                 android:indeterminate="true"
                 android:indeterminateOnly="false" />
 
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginTop="24dp"
-                android:background="@android:color/black" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="@string/try_it_label"
-                android:textColor="@color/PrimaryDark"
-                android:textSize="14sp" />
-
             <LinearLayout
-                android:layout_width="wrap_content"
+                android:id="@+id/example_area"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:layout_marginBottom="16dp"
-                android:orientation="horizontal">
+                android:layout_marginTop="24dp"
+                android:background="@drawable/bg_example_area"
+                android:orientation="vertical"
+                android:padding="16dp">
 
                 <TextView
-                    android:id="@+id/sample_horizontal"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:lineSpacingMultiplier="1.5"
-                    android:text="@string/sample_horizontal"
+                    android:text="@string/try_it_label"
                     android:textColor="@color/PrimaryDark"
-                    android:textIsSelectable="true"
-                    android:textSize="24sp" />
+                    android:textSize="14sp" />
 
-                <TextView
-                    android:id="@+id/sample_vertical"
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="32dp"
-                    android:gravity="center"
-                    android:text="@string/sample_vertical"
-                    android:textColor="@color/PrimaryDark"
-                    android:textIsSelectable="true"
-                    android:textSize="24sp" />
+                    android:layout_marginTop="12dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/sample_horizontal"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:lineSpacingMultiplier="1.3"
+                        android:text="@string/sample_horizontal"
+                        android:textColor="@color/PrimaryDark"
+                        android:textIsSelectable="true"
+                        android:textSize="22sp" />
+
+                    <TextView
+                        android:id="@+id/sample_vertical"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:gravity="center"
+                        android:text="@string/sample_vertical"
+                        android:textColor="@color/PrimaryDark"
+                        android:textIsSelectable="true"
+                        android:textSize="22sp" />
+                </LinearLayout>
             </LinearLayout>
         </LinearLayout>
     </ScrollView>
