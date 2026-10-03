@@ -2,6 +2,7 @@ package app.mojiscope
 
 import android.net.Uri
 import android.os.Bundle
+import android.provider.OpenableColumns
 import android.view.LayoutInflater
 import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
@@ -123,17 +124,47 @@ class DictionariesActivity : AppCompatActivity()
         mBinding.importButton.isEnabled = false
         mBinding.importProgress.visibility = View.VISIBLE
         mBinding.importStatus.visibility = View.VISIBLE
-        mBinding.importStatus.text = getString(R.string.dictionary_importing, "0")
+        mBinding.importStatus.text = getString(R.string.dictionary_importing, 0, "0")
 
         val numbers = NumberFormat.getIntegerInstance()
+        val totalBytes = fileSize(uri)
+
+        // With a known file size the bar shows how much of the zip has been read
+        if (totalBytes > 0)
+        {
+            mBinding.importProgress.isIndeterminate = false
+            mBinding.importProgress.max = PROGRESS_STEPS
+            mBinding.importProgress.progress = 0
+        }
+        else
+        {
+            mBinding.importProgress.isIndeterminate = true
+        }
 
         mExecutor.execute {
             var message: String
             try
             {
-                val result = UserDictionaryStore.get(this).import({ contentResolver.openInputStream(uri) ?: throw IOException("The file could not be opened") }) { count ->
-                    runOnUiThread { mBinding.importStatus.text = getString(R.string.dictionary_importing, numbers.format(count)) }
-                }
+                var lastUpdate = 0L
+
+                val result = UserDictionaryStore.get(this).import({ contentResolver.openInputStream(uri) ?: throw IOException("The file could not be opened") }, { count, bytesRead ->
+                    // Banks arrive a few thousand entries at a time, so this is not called too often; still skip updates that come too fast
+                    val now = System.currentTimeMillis()
+                    if (now - lastUpdate > 100)
+                    {
+                        lastUpdate = now
+                        val percent = if (totalBytes > 0) (bytesRead * 100 / totalBytes).toInt().coerceIn(0, 99) else 0
+                        runOnUiThread {
+                            if (totalBytes > 0) mBinding.importProgress.setProgressCompat((percent * PROGRESS_STEPS / 100), true)
+                            mBinding.importStatus.text = getString(R.string.dictionary_importing, percent, numbers.format(count))
+                        }
+                    }
+                }, {
+                    runOnUiThread {
+                        if (totalBytes > 0) mBinding.importProgress.setProgressCompat(PROGRESS_STEPS, true)
+                        mBinding.importStatus.text = getString(R.string.dictionary_finishing)
+                    }
+                })
 
                 runOnUiThread {
                     DictionarySelection.set(this, result.dictionary.id)
@@ -160,6 +191,21 @@ class DictionariesActivity : AppCompatActivity()
         }
     }
 
+    /** Size of the picked file in bytes, or -1 if the provider doesn't say */
+    private fun fileSize(uri: Uri): Long
+    {
+        return try
+        {
+            contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { c ->
+                if (c.moveToFirst() && !c.isNull(0)) c.getLong(0) else -1L
+            } ?: -1L
+        }
+        catch (e: Exception)
+        {
+            -1L
+        }
+    }
+
     private fun openLink(url: String)
     {
         startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(url)))
@@ -167,6 +213,8 @@ class DictionariesActivity : AppCompatActivity()
 
     companion object
     {
+        private const val PROGRESS_STEPS = 1000
+
         private const val JMDICT_RELEASES_URL = "https://github.com/yomidevs/jmdict-yomitan/releases/latest"
         private const val YOMITAN_DICTIONARIES_URL = "https://yomitan.wiki/dictionaries/"
     }

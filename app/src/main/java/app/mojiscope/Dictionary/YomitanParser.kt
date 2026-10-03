@@ -26,6 +26,36 @@ data class ImportedTerm(
 
 class DictionaryFormatException(message: String) : Exception(message)
 
+/** Reports the total number of bytes read so far */
+private class CountingInputStream(private val source: InputStream, private val onBytesRead: (Long) -> Unit) : InputStream()
+{
+    private var total = 0L
+
+    override fun read(): Int
+    {
+        val b = source.read()
+        if (b >= 0) advance(1)
+        return b
+    }
+
+    override fun read(buffer: ByteArray, offset: Int, length: Int): Int
+    {
+        val n = source.read(buffer, offset, length)
+        if (n > 0) advance(n)
+        return n
+    }
+
+    override fun available(): Int = source.available()
+
+    override fun close() = source.close()
+
+    private fun advance(n: Int)
+    {
+        total += n
+        onBytesRead(total)
+    }
+}
+
 /**
  * Reads dictionaries in the Yomitan/Yomichan zip format: an index.json plus term_bank_N.json and
  * kanji_bank_N.json files. Frequency, pitch accent and other meta banks are ignored.
@@ -40,13 +70,14 @@ object YomitanParser
      * @param onTerms called with each batch of rows (one bank file at a time)
      * @return the dictionary's metadata and how many rows were read
      */
-    fun parse(openStream: () -> InputStream, onTerms: (List<ImportedTerm>) -> Unit): Pair<DictionaryMeta, Int>
+    fun parse(openStream: () -> InputStream, onBytesRead: (Long) -> Unit = {}, onTerms: (List<ImportedTerm>) -> Unit): Pair<DictionaryMeta, Int>
     {
         val meta = readIndex(openStream)
 
         var count = 0
         openStream().use { raw ->
-            val zip = ZipInputStream(raw)
+            // Counting the compressed bytes read from the file gives a progress fraction without knowing the entry count
+            val zip = ZipInputStream(CountingInputStream(raw, onBytesRead))
             while (true)
             {
                 val entry = zip.nextEntry ?: break

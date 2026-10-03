@@ -64,9 +64,10 @@ class UserDictionaryStore private constructor(context: Context) : SQLiteOpenHelp
      * Imports a Yomitan zip. Everything happens in one transaction, so a failed import leaves nothing behind.
      * An existing dictionary with the same title is replaced, which is how a newer version is installed.
      *
-     * @param onProgress called with the number of entries imported so far
+     * @param onProgress called with the number of entries imported so far and the bytes of the zip read so far
+     * @param onFinishing called when all entries are read and the index is being built
      */
-    fun import(openStream: () -> InputStream, onProgress: (Int) -> Unit): ImportResult
+    fun import(openStream: () -> InputStream, onProgress: (entries: Int, bytesRead: Long) -> Unit, onFinishing: () -> Unit = {}): ImportResult
     {
         val db = writableDatabase
         val startTime = System.nanoTime()
@@ -90,7 +91,9 @@ class UserDictionaryStore private constructor(context: Context) : SQLiteOpenHelp
 
             val statement = db.compileStatement("INSERT INTO terms (dict_id, term, reading, tags, rules, score, sequence, glossary) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
 
-            val (meta, count) = YomitanParser.parse(openStream) { rows ->
+            var bytesRead = 0L
+
+            val (meta, count) = YomitanParser.parse(openStream, { bytesRead = it }) { rows ->
                 val insertStart = System.nanoTime()
                 for (row in rows)
                 {
@@ -108,7 +111,7 @@ class UserDictionaryStore private constructor(context: Context) : SQLiteOpenHelp
 
                 insertNanos += System.nanoTime() - insertStart
                 imported += rows.size
-                onProgress(imported)
+                onProgress(imported, bytesRead)
             }
 
             val update = ContentValues()
@@ -131,6 +134,7 @@ class UserDictionaryStore private constructor(context: Context) : SQLiteOpenHelp
                 db.delete("dictionaries", "id = ?", arrayOf(old.toString()))
             }
 
+            onFinishing()
             db.execSQL("CREATE INDEX terms_lookup ON terms (dict_id, term)")
 
             db.setTransactionSuccessful()
