@@ -21,6 +21,13 @@ data class ImportResult(val dictionary: UserDictionary, val replacedIds: List<Lo
  */
 class UserDictionaryStore private constructor(context: Context) : SQLiteOpenHelper(context.applicationContext, "user_dictionaries.db", null, 1)
 {
+    init
+    {
+        // In write-ahead logging mode readers never wait for the big import transaction: they see the
+        // last committed state. Without it, opening the dictionary screen mid-import blocks (and shows "not responding").
+        setWriteAheadLoggingEnabled(true)
+    }
+
     override fun onCreate(db: SQLiteDatabase)
     {
         db.execSQL("CREATE TABLE dictionaries (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, revision TEXT NOT NULL, entries INTEGER NOT NULL)")

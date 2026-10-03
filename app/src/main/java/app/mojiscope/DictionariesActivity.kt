@@ -12,6 +12,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import app.mojiscope.Dictionary.DictionaryImport
 import app.mojiscope.Dictionary.DictionarySelection
+import app.mojiscope.Dictionary.UserDictionary
 import app.mojiscope.Dictionary.UserDictionaryStore
 import app.mojiscope.databinding.ActivityDictionariesBinding
 import app.mojiscope.databinding.ItemDictionaryBinding
@@ -19,6 +20,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import java.text.NumberFormat
 import java.util.concurrent.Executors
+import java.util.concurrent.RejectedExecutionException
 
 /**
  * Choose which dictionary is used for lookups and import personal dictionaries (Yomitan format)
@@ -59,17 +61,35 @@ class DictionariesActivity : AppCompatActivity()
         super.onDestroy()
     }
 
+    /** Reads the dictionary list off the main thread, then shows it */
     private fun refresh()
+    {
+        try
+        {
+            mExecutor.execute {
+                val selected = DictionarySelection.get(this)
+                val dictionaries = UserDictionaryStore.get(this).list()
+
+                runOnUiThread {
+                    if (!isDestroyed) showDictionaries(selected, dictionaries)
+                }
+            }
+        }
+        catch (e: RejectedExecutionException)
+        {
+            // The screen is closing
+        }
+    }
+
+    private fun showDictionaries(selected: Long, dictionaries: List<UserDictionary>)
     {
         val list = mBinding.dictionaryList
         list.removeAllViews()
 
-        val selected = DictionarySelection.get(this)
-
         addRow(DictionarySelection.BUILT_IN, getString(R.string.dictionary_builtin_title), getString(R.string.dictionary_builtin_subtitle), selected == DictionarySelection.BUILT_IN, false)
 
         val numbers = NumberFormat.getIntegerInstance()
-        for (dictionary in UserDictionaryStore.get(this).list())
+        for (dictionary in dictionaries)
         {
             val count = numbers.format(dictionary.entries)
             val subtitle = if (dictionary.revision.isEmpty())
