@@ -6,11 +6,13 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.PopupMenu
 import android.widget.ProgressBar
 import android.widget.TextView
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
-import java.util.*
 
 class MainStartFragment : Fragment()
 {
@@ -19,6 +21,7 @@ class MainStartFragment : Fragment()
 
     private lateinit var supportText : TextView
     private lateinit var progressBar : ProgressBar
+    private lateinit var startButton : Button
 
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
@@ -31,11 +34,16 @@ class MainStartFragment : Fragment()
         supportText = rootView.findViewById(R.id.support_text)
         progressBar = rootView.findViewById(R.id.progress_bar)
 
-        rootView.findViewById<View>(R.id.menu_button).setOnClickListener { showMenu(it) }
+        startButton = rootView.findViewById(R.id.start_button)
 
-        if (MainService.IsRunning())
-        {
-            onMojiscopeLoaded()
+        rootView.findViewById<View>(R.id.menu_button).setOnClickListener { showMenu(it) }
+        startButton.setOnClickListener { mainActivity.onStartPressed() }
+
+        // Keep content clear of the status and navigation bars (edge-to-edge on Android 15+)
+        ViewCompat.setOnApplyWindowInsetsListener(rootView) { v, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+            v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+            WindowInsetsCompat.CONSUMED
         }
 
         return rootView
@@ -60,26 +68,30 @@ class MainStartFragment : Fragment()
     {
         super.onResume()
 
-        if (!MainService.IsRunning())
+        if (MainService.IsRunning())
         {
-            onMojiscopeLoadStart()
+            onMojiscopeLoaded()
         }
-
-        Timer().schedule(object : TimerTask()
+        else
         {
-            override fun run()
-            {
-                mainActivity.runOnUiThread {
-                    mainActivity.startMojiscope(this@MainStartFragment)
-                }
-            }
-        }, 3000)
+            onMojiscopeIdle()
+        }
+    }
+
+    private fun onMojiscopeIdle()
+    {
+        progressBar.isIndeterminate = false
+        progressBar.progress = 0
+        startButton.isEnabled = true
+        startButton.visibility = View.VISIBLE
+        supportText.text = getString(R.string.start_hint)
     }
 
     fun onMojiscopeLoadStart()
     {
         progressBar.isIndeterminate = true
         progressBar.progress = 0
+        startButton.isEnabled = false
         supportText.text = getString(R.string.moji_loading)
     }
 
@@ -87,6 +99,7 @@ class MainStartFragment : Fragment()
     {
         progressBar.isIndeterminate = false
         progressBar.progress = 100
+        startButton.visibility = View.GONE
         writeSupportText()
     }
 

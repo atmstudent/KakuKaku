@@ -23,7 +23,6 @@ import app.mojiscope.Dialogs.StarRatingDialogFragment
 
 class MainActivity : AppCompatActivity()
 {
-    private var mIsActivityVisible = false
     private var mShownRating = false
 
     private lateinit var mPrefs : SharedPreferences
@@ -39,7 +38,6 @@ class MainActivity : AppCompatActivity()
         else
         {
             Toast.makeText(this, "Check Permission: Draw on Other Apps\n$relaunchAppText", Toast.LENGTH_LONG).show()
-            finish()
         }
     }
 
@@ -52,13 +50,13 @@ class MainActivity : AppCompatActivity()
         if (result.resultCode != Activity.RESULT_OK || result.data == null)
         {
             Toast.makeText(this, "Check Permission: Record Screen\n$relaunchAppText", Toast.LENGTH_LONG).show()
-            finish()
         }
         else
         {
             mStartMojiscopeIntent = Intent(this, MainService::class.java)
                     .putExtra(EXTRA_PROJECTION_RESULT_CODE, result.resultCode)
                     .putExtra(EXTRA_PROJECTION_RESULT_INTENT, result.data)
+            startMojiscope()
         }
     }
 
@@ -78,8 +76,6 @@ class MainActivity : AppCompatActivity()
     {
         super.onStart()
 
-        requestPermissionsInOrder()
-
         showRatingDialog()
     }
 
@@ -87,24 +83,32 @@ class MainActivity : AppCompatActivity()
     {
         super.onPause()
         Log.d(TAG, "ACTIVITY INVISIBLE")
-        mIsActivityVisible = false
     }
 
     override fun onResume()
     {
         super.onResume()
         Log.d(TAG, "ACTIVITY VISIBLE")
-        mIsActivityVisible = true
     }
 
-    fun startMojiscope(startFragment: MainStartFragment)
+    /**
+     * Called when the user presses Start: walks through the permission prompts and then starts capture
+     */
+    fun onStartPressed()
     {
         if (MainService.IsRunning())
         {
             return
         }
 
-        if (!mIsActivityVisible)
+        requestPermissionsInOrder()
+    }
+
+    private fun startMojiscope()
+    {
+        val startFragment = supportFragmentManager.findFragmentById(R.id.main_fragment) as? MainStartFragment ?: return
+
+        if (MainService.IsRunning())
         {
             return
         }

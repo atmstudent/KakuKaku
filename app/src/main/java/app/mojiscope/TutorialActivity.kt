@@ -2,6 +2,8 @@ package app.mojiscope
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentStatePagerAdapter
@@ -40,6 +42,12 @@ class TutorialActivity : AppCompatActivity()
 
         supportActionBar?.hide()
         setContentView(mBinding.root)
+
+        ViewCompat.setOnApplyWindowInsetsListener(mBinding.root) { v, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+            v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+            WindowInsetsCompat.CONSUMED
+        }
 
         mSectionsPagerAdapter = SectionsPagerAdapter(supportFragmentManager)
         mBinding.container.adapter = mSectionsPagerAdapter
