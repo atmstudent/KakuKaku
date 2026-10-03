@@ -13,6 +13,7 @@ const val DB_KANJIDICT_NAME = "KANJIDICT"
 const val DB_ENAMEDICT_NAME = "ENAMEDICT"
 
 const val MOJI_PREF_FILE = "app.mojiscope"
+const val MOJI_PREF_SELECTED_DICTIONARY = "SelectedDictionary"
 const val MOJI_PREF_SHOW_HIDE = "ShowHide"
 const val MOJI_PREF_IMAGE_FILTER = "ImageFilter"
 const val MOJI_PREF_TEXT_DIRECTION = "TextDirection"

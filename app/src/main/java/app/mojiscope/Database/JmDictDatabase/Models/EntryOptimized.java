@@ -44,6 +44,9 @@ public class EntryOptimized implements Comparable<EntryOptimized> {
 
     private boolean onlyKana = false;
 
+    // Grammar rules (for example v1, v5, adj-i) of imported dictionaries; used to validate deinflections
+    private String rules = "";
+
     public EntryOptimized(){
     }
 
@@ -88,6 +91,14 @@ public class EntryOptimized implements Comparable<EntryOptimized> {
     public void setPos(String pos)
     {
         this.pos = pos;
+    }
+
+    public String getRules() {
+        return rules;
+    }
+
+    public void setRules(String rules) {
+        this.rules = rules == null ? "" : rules;
     }
 
     public boolean isOnlyKana() {

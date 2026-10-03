@@ -36,6 +36,12 @@
         </activity>
 
         <activity
+            android:name=".DictionariesActivity"
+            android:exported="false"
+            android:label="@string/dictionaries_title"
+            android:screenOrientation="portrait" />
+
+        <activity
             android:name=".TutorialActivity"
             android:exported="false"
             android:label="Mojiscope Tutorial"

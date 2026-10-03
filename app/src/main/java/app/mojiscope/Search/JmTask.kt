@@ -2,7 +2,8 @@ package app.mojiscope.Search
 
 import android.content.Context
 import android.util.Log
-import app.mojiscope.DB_JMDICT_NAME
+import app.mojiscope.Dictionary.DictionarySelection
+import app.mojiscope.Dictionary.UserDictionaryStore
 import app.mojiscope.DB_KANJIDICT_NAME
 import app.mojiscope.Database.JmDictDatabase.JmDatabaseHelper
 import app.mojiscope.Database.JmDictDatabase.Models.EntryOptimized
@@ -22,6 +23,8 @@ import kotlin.collections.sortedWith
 class JmTask @Throws(SQLException::class)
 constructor(private val mSearchInfo: SearchInfo, private val mSearchJmTaskDone: SearchJmTaskDone, context: Context) : BackgroundTask<List<JmSearchResult>>()
 {
+    private val mContext: Context = context.applicationContext
+
     companion object
     {
         private val TAG = JmTask::class.java.getName()
@@ -42,14 +45,26 @@ constructor(private val mSearchInfo: SearchInfo, private val mSearchJmTaskDone: 
         val entryOptimizedDao = mJmDbHelper.getDbDao<EntryOptimized>(EntryOptimized::class.java)
 
         val startDictTime = System.currentTimeMillis()
-        var character = String(intArrayOf(text.codePointAt(textOffset)), 0, 1)
+        val firstChar = String(intArrayOf(text.codePointAt(textOffset)), 0, 1)
 
         // What the flying fuck? Wasn't the entire point of using an ORM is so shit would be escaped for me?
-        character = character.replace("%", "\\%")
+        var character = firstChar.replace("%", "\\%")
         character = character.replace("_", "\\_")
         character = character.replace("'", "''")
 
-        val entries: List<EntryOptimized> = entryOptimizedDao.queryBuilder().where().like("kanji", "$character%").query()
+        val builtInEntries: List<EntryOptimized> = entryOptimizedDao.queryBuilder().where().like("kanji", "$character%").query()
+
+        // An imported dictionary replaces the bundled word dictionary; kanji information always comes from the bundled one
+        val selectedDictionary = DictionarySelection.get(mContext)
+        val entries: List<EntryOptimized> = if (selectedDictionary == DictionarySelection.BUILT_IN)
+        {
+            builtInEntries
+        }
+        else
+        {
+            builtInEntries.filter { it.dictionary == DB_KANJIDICT_NAME } + UserDictionaryStore.get(mContext).search(selectedDictionary, firstChar)
+        }
+
         val matchedEntries = rankResults(getMatchedEntries(text, textOffset, entries))
         Log.d(TAG, "Dict lookup time: ${System.currentTimeMillis() - startDictTime}")
 
@@ -93,11 +108,12 @@ constructor(private val mSearchInfo: SearchInfo, private val mSearchJmTaskDone: 
 
                     if (count > 0)
                     {
-                        valid = (deinfInfo.type and 1 != 0) && (entry.pos.contains("v1")) ||
-                                (deinfInfo.type and 2 != 0) && (entry.pos.contains("v5")) ||
-                                (deinfInfo.type and 4 != 0) && (entry.pos.contains("adj-i")) ||
-                                (deinfInfo.type and 8 != 0) && (entry.pos.contains("vk")) ||
-                                (deinfInfo.type and 16 != 0) && (entry.pos.contains("vs-"))
+                        val posAndRules = entry.pos + " " + entry.rules
+                        valid = (deinfInfo.type and 1 != 0) && (posAndRules.contains("v1")) ||
+                                (deinfInfo.type and 2 != 0) && (posAndRules.contains("v5")) ||
+                                (deinfInfo.type and 4 != 0) && (posAndRules.contains("adj-i")) ||
+                                (deinfInfo.type and 8 != 0) && (posAndRules.contains("vk")) ||
+                                (deinfInfo.type and 16 != 0) && (posAndRules.contains("vs"))
                     }
 
                     if (valid){
@@ -141,9 +157,8 @@ constructor(private val mSearchInfo: SearchInfo, private val mSearchJmTaskDone: 
     {
         return when
         {
-            result.entry.dictionary == DB_JMDICT_NAME -> Int.MAX_VALUE - 2
             result.entry.dictionary == DB_KANJIDICT_NAME -> Int.MAX_VALUE - 1
-            else -> Int.MAX_VALUE
+            else -> Int.MAX_VALUE - 2
         }
     }
 

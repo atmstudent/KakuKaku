@@ -40,6 +40,7 @@ class MainStartFragment : Fragment()
         rootView.findViewById<MaterialToolbar>(R.id.toolbar).setOnMenuItemClickListener {
             when (it.itemId)
             {
+                R.id.menu_dictionaries -> startActivity(Intent(mainActivity, DictionariesActivity::class.java))
                 R.id.menu_tutorial -> startActivity(Intent(mainActivity, TutorialActivity::class.java))
                 R.id.menu_source -> startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/0xbad1d3a5/Kaku")))
             }

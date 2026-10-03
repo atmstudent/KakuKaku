@@ -342,7 +342,7 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
             sb.append(jmSearchResult.getEntry().getKanji());
 
             if (!jmSearchResult.getEntry().getReadings().isEmpty()){
-                if (Constants.DB_JMDICT_NAME.equals(jmSearchResult.getEntry().getDictionary()))
+                if (!Constants.DB_KANJIDICT_NAME.equals(jmSearchResult.getEntry().getDictionary()))
                 {
                     sb.append(" (");
                 }
@@ -350,7 +350,7 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
                     sb.append(" ");
                 }
                 sb.append(jmSearchResult.getEntry().getReadings());
-                if (Constants.DB_JMDICT_NAME.equals(jmSearchResult.getEntry().getDictionary())) sb.append(")");
+                if (!Constants.DB_KANJIDICT_NAME.equals(jmSearchResult.getEntry().getDictionary())) sb.append(")");
             }
 
             String deinfReason = jmSearchResult.getDeinfInfo().getReason();
@@ -384,7 +384,7 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
             }
             sb.append(LangUtils.Companion.ConvertIntToCircledNum(i + 1));
             sb.append(" ");
-            if (Constants.DB_JMDICT_NAME.equals(entry.getDictionary()) && !pos[i].isEmpty()){
+            if (!Constants.DB_KANJIDICT_NAME.equals(entry.getDictionary()) && !pos[i].isEmpty()){
                 sb.append(String.format("(%s) ", pos[i]));
             }
             sb.append(meanings[i]);

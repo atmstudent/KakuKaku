@@ -12,7 +12,7 @@ import android.view.ViewGroup.LayoutParams.*
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.TextView
-import app.mojiscope.DB_JMDICT_NAME
+import app.mojiscope.DB_KANJIDICT_NAME
 import app.mojiscope.Database.JmDictDatabase.Models.EntryOptimized
 import app.mojiscope.LangUtils
 import app.mojiscope.R
@@ -238,7 +238,7 @@ class HistoryWindow(context: Context,
 
             if (!entry.readings.isEmpty())
             {
-                if (DB_JMDICT_NAME == entry.dictionary)
+                if (DB_KANJIDICT_NAME != entry.dictionary)
                 {
                     sb.append(" (")
                 } else
@@ -246,7 +246,7 @@ class HistoryWindow(context: Context,
                     sb.append(" ")
                 }
                 sb.append(entry.readings)
-                if (DB_JMDICT_NAME == entry.dictionary) sb.append(")")
+                if (DB_KANJIDICT_NAME != entry.dictionary) sb.append(")")
             }
 
             sb.append("\n")
@@ -277,7 +277,7 @@ class HistoryWindow(context: Context,
             }
             sb.append(LangUtils.ConvertIntToCircledNum(i + 1))
             sb.append(" ")
-            if (DB_JMDICT_NAME == entry.dictionary && !pos[i].isEmpty())
+            if (DB_KANJIDICT_NAME != entry.dictionary && !pos[i].isEmpty())
             {
                 sb.append(String.format("(%s) ", pos[i]))
             }

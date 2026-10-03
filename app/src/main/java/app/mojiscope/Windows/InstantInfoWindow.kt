@@ -279,7 +279,7 @@ class InstantInfoWindow(context: Context,
 
             if (!entry.readings.isEmpty())
             {
-                if (DB_JMDICT_NAME == entry.dictionary)
+                if (DB_KANJIDICT_NAME != entry.dictionary)
                 {
                     sb.append(" (")
                 } else
@@ -287,7 +287,7 @@ class InstantInfoWindow(context: Context,
                     sb.append(" ")
                 }
                 sb.append(entry.readings)
-                if (DB_JMDICT_NAME == entry.dictionary) sb.append(")")
+                if (DB_KANJIDICT_NAME != entry.dictionary) sb.append(")")
             }
 
             val deinfReason = deinfInfo!!.reason
@@ -329,7 +329,7 @@ class InstantInfoWindow(context: Context,
             }
             sb.append(LangUtils.ConvertIntToCircledNum(i + 1))
             sb.append(" ")
-            if (DB_JMDICT_NAME == entry.dictionary && !pos[i].isEmpty())
+            if (DB_KANJIDICT_NAME != entry.dictionary && !pos[i].isEmpty())
             {
                 sb.append(String.format("(%s) ", pos[i]))
             }
