@@ -1,17 +1,21 @@
 package app.mojiscope.Windows.Views
 
 import android.content.Context
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Paint
 import android.util.AttributeSet
 import android.util.Log
 import android.util.TypedValue
 import android.view.GestureDetector
 import android.view.Gravity
 import android.view.MotionEvent
+import android.view.ViewGroup
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import app.mojiscope.*
 import app.mojiscope.Ocr.BoxParams
 import app.mojiscope.Windows.*
@@ -33,6 +37,12 @@ class KanjiCharacterView : FrameLayout, GestureDetector.OnGestureListener, IReca
     private lateinit var mKanjiChoiceWindow: KanjiChoiceWindow
     private lateinit var mEditWindow: EditWindow
     private lateinit var mSquareChar: ISquareChar
+
+    private enum class HighlightState { NONE, FILLED, OUTLINED }
+
+    private var mHighlightState = HighlightState.NONE
+    private val mFillPaint = Paint()
+    private val mStrokePaint = Paint()
 
     private lateinit var mKanjiTextView: TextView
     private lateinit var mIconImageView: ImageView
@@ -63,6 +73,14 @@ class KanjiCharacterView : FrameLayout, GestureDetector.OnGestureListener, IReca
     private fun Init(context: Context)
     {
         mContext = context
+        setWillNotDraw(false)
+
+        mFillPaint.style = Paint.Style.FILL
+        mFillPaint.color = ContextCompat.getColor(context, R.color.blue_dark_translucent)
+        mStrokePaint.style = Paint.Style.STROKE
+        mStrokePaint.color = ContextCompat.getColor(context, R.color.blue_dark)
+        mStrokePaint.strokeWidth = Math.max(1f, context.resources.displayMetrics.density)
+
         mGestureDetector = GestureDetector(mContext, this)
 
         mKanjiTextView = TextView(mContext)
@@ -101,22 +119,76 @@ class KanjiCharacterView : FrameLayout, GestureDetector.OnGestureListener, IReca
 
     fun setCellSize(px: Int)
     {
-        mCellSizePx = dpToPx(context, pxToDp(context, px) - 2)
+        // The highlight fills the whole cell so that neighboring highlighted cells touch and merge
+        mCellSizePx = px
     }
 
     fun highlight()
     {
-        background = mContext.getDrawable(R.drawable.bg_translucent_border_0_blue_blue)
+        setHighlightState(HighlightState.FILLED)
     }
 
     fun highlightLight()
     {
-        background = mContext.getDrawable(R.drawable.bg_transparent_border_0_nil_default)
+        setHighlightState(HighlightState.OUTLINED)
     }
 
     fun unhighlight()
     {
-        background = null
+        setHighlightState(HighlightState.NONE)
+    }
+
+    private fun setHighlightState(state: HighlightState)
+    {
+        if (mHighlightState == state)
+        {
+            return
+        }
+
+        mHighlightState = state
+        invalidate()
+
+        // Neighbors may need to add or remove the border they share with this cell
+        neighbor(-1)?.invalidate()
+        neighbor(1)?.invalidate()
+    }
+
+    private fun neighbor(direction: Int): KanjiCharacterView?
+    {
+        val group = parent as? ViewGroup ?: return null
+        val neighborView = group.getChildAt(group.indexOfChild(this) + direction) as? KanjiCharacterView ?: return null
+
+        // Only cells that are touching in the same row count (not the end of one row and the start of the next)
+        if (Math.abs(neighborView.top - top) > 1) return null
+        val gap = if (direction < 0) left - neighborView.right else neighborView.left - right
+        return if (Math.abs(gap) <= 1) neighborView else null
+    }
+
+    override fun onDraw(canvas: Canvas)
+    {
+        super.onDraw(canvas)
+
+        if (mHighlightState == HighlightState.NONE)
+        {
+            return
+        }
+
+        val w = width.toFloat()
+        val h = height.toFloat()
+        val half = mStrokePaint.strokeWidth / 2f
+
+        if (mHighlightState == HighlightState.FILLED)
+        {
+            canvas.drawRect(0f, 0f, w, h, mFillPaint)
+        }
+
+        canvas.drawLine(0f, half, w, half, mStrokePaint)
+        canvas.drawLine(0f, h - half, w, h - half, mStrokePaint)
+
+        val joinedLeft = neighbor(-1)?.mHighlightState == mHighlightState
+        val joinedRight = neighbor(1)?.mHighlightState == mHighlightState
+        if (!joinedLeft) canvas.drawLine(half, 0f, half, h, mStrokePaint)
+        if (!joinedRight) canvas.drawLine(w - half, 0f, w - half, h, mStrokePaint)
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int)
