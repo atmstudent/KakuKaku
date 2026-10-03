@@ -41,7 +41,7 @@ open class SquareGridView : ViewGroup
 
     private fun Init(context: Context)
     {
-        squareCellSize = dpToPx(context, 26)
+        squareCellSize = dpToPx(context, 28)
     }
 
     fun setCellSize(dp: Int)

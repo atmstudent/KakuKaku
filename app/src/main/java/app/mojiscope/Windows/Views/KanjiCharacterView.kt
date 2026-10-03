@@ -67,8 +67,11 @@ class KanjiCharacterView : FrameLayout, GestureDetector.OnGestureListener, IReca
 
         mKanjiTextView = TextView(mContext)
         mKanjiTextView.gravity = Gravity.CENTER
+        // Font padding pushes the glyph toward the bottom of the cell; drop it so the glyph is centered
+        mKanjiTextView.includeFontPadding = false
         mKanjiTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20.toFloat())
         mKanjiTextView.setTextColor(Color.BLACK)
+
         addView(mKanjiTextView)
 
         mIconImageView = ImageView(mContext)
@@ -123,10 +126,34 @@ class KanjiCharacterView : FrameLayout, GestureDetector.OnGestureListener, IReca
 
         for (i in 0 until childCount)
         {
-            getChildAt(i).measure(cellWidthSpec, cellHeightSpec)
+            val child = getChildAt(i)
+            if (child === mKanjiTextView)
+            {
+                // CJK fonts have a line height taller than the cell; let the text keep its natural
+                // height (it would otherwise be pinned to the top and look low) and position it in onLayout
+                child.measure(cellWidthSpec, View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+            }
+            else
+            {
+                child.measure(cellWidthSpec, cellHeightSpec)
+            }
         }
 
         setMeasuredDimension(mCellSizePx, mCellSizePx)
+    }
+
+    override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int)
+    {
+        super.onLayout(changed, left, top, right, bottom)
+
+        // Put the middle of a full-width glyph (measured from a reference kanji) in the middle of the cell
+        val paint = mKanjiTextView.paint
+        val bounds = android.graphics.Rect()
+        paint.getTextBounds("国", 0, 1, bounds)
+        // The laid-out baseline accounts for the fallback CJK font actually used for the glyph
+        val inkCenterFromTop = mKanjiTextView.baseline + (bounds.top + bounds.bottom) / 2f
+        val textTop = Math.round((bottom - top) / 2f - inkCenterFromTop)
+        mKanjiTextView.layout(0, textTop, mKanjiTextView.measuredWidth, textTop + mKanjiTextView.measuredHeight)
     }
 
     override fun onTouchEvent(e: MotionEvent): Boolean
