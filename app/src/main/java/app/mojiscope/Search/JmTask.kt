@@ -3,6 +3,7 @@ package app.mojiscope.Search
 import android.content.Context
 import android.util.Log
 import app.mojiscope.Dictionary.DictionarySelection
+import app.mojiscope.Dictionary.PitchAccent
 import app.mojiscope.Dictionary.UserDictionaryStore
 import app.mojiscope.DB_KANJIDICT_NAME
 import app.mojiscope.Database.JmDictDatabase.JmDatabaseHelper
@@ -66,6 +67,16 @@ constructor(private val mSearchInfo: SearchInfo, private val mSearchJmTaskDone: 
         }
 
         val matchedEntries = rankResults(getMatchedEntries(text, textOffset, entries))
+
+        // Pitch accent comes from its own bundled dictionary, whichever word dictionary is selected
+        if (PitchAccent.isEnabled(mContext))
+        {
+            val pitchAccent = PitchAccent.get(mContext)
+            for (result in matchedEntries)
+            {
+                if (result.entry.dictionary != DB_KANJIDICT_NAME) result.pitch = pitchAccent.lookup(result.entry.kanji, result.entry.readings)
+            }
+        }
         Log.d(TAG, "Dict lookup time: ${System.currentTimeMillis() - startDictTime}")
 
         return matchedEntries

@@ -12,6 +12,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import app.mojiscope.Dictionary.DictionaryImport
 import app.mojiscope.Dictionary.DictionarySelection
+import app.mojiscope.Dictionary.PitchAccent
 import app.mojiscope.Dictionary.UserDictionary
 import app.mojiscope.Dictionary.UserDictionaryStore
 import app.mojiscope.databinding.ActivityDictionariesBinding
@@ -51,6 +52,13 @@ class DictionariesActivity : AppCompatActivity()
         mBinding.importButton.setOnClickListener { mPicker.launch(arrayOf("*/*")) }
         mBinding.getJmdictButton.setOnClickListener { openLink(JMDICT_RELEASES_URL) }
         mBinding.moreDictionariesButton.setOnClickListener { openLink(YOMITAN_DICTIONARIES_URL) }
+
+        mBinding.pitchSwitch.isChecked = PitchAccent.isEnabled(this)
+        mBinding.pitchRow.setOnClickListener {
+            val enabled = !mBinding.pitchSwitch.isChecked
+            mBinding.pitchSwitch.isChecked = enabled
+            PitchAccent.setEnabled(this, enabled)
+        }
 
         refresh()
     }

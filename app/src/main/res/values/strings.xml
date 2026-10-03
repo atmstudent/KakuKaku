@@ -7,6 +7,9 @@
     <string name="dictionary_delete">Delete dictionary</string>
     <string name="dictionary_select_header">Dictionary used for lookups</string>
     <string name="dictionary_import">Import dictionary (.zip)</string>
+    <string name="pitch_header">Pitch accent</string>
+    <string name="pitch_title">Pitch accent (built in)</string>
+    <string name="pitch_subtitle">アクセント辞典. Shows the accent after the reading, like 猫 (ねこ) [1]. Works with any word dictionary.</string>
     <string name="dictionary_builtin_title">JMdict (built in)</string>
     <string name="dictionary_builtin_subtitle">JMdict and KANJIDIC, October 2026</string>
     <string name="dictionary_update_title">Update the dictionary</string>

@@ -362,6 +362,10 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
                 if (!Constants.DB_KANJIDICT_NAME.equals(jmSearchResult.getEntry().getDictionary())) sb.append(")");
             }
 
+            if (!jmSearchResult.getPitch().isEmpty()){
+                sb.append(" ").append(jmSearchResult.getPitch());
+            }
+
             String deinfReason = jmSearchResult.getDeinfInfo().getReason();
             if (deinfReason != null && !deinfReason.isEmpty()){
                 sb.append(String.format(" %s", deinfReason));

@@ -54,4 +54,12 @@ The bundled database is generated from the official JMdict and KANJIDIC2 files. 
 
 3. Put the result in `app/src/main/assets/`, replacing the old file, and set `JMDICT_DATABASE_NAME` in `Constants.kt` to the new file name. The name is the database's version: a changed name makes the app copy the new database and delete the old one.
 
+The bundled pitch accent database is built from a Yomitan pitch dictionary (currently アクセント辞典 v2):
+
+```bash
+tools/build_pitch_db.py <dictionary.zip> app/src/main/assets/DB_MojiPitch-YYYY-MM-DD.db
+```
+
+Set `PITCH_DATABASE_NAME` in `Constants.kt` to the new file name and add the file with `git add -f`; as with the main database, the name is its version.
+
 JMdict and KANJIDIC are the property of the Electronic Dictionary Research and Development Group and are used under their [licence](https://www.edrdg.org/edrdg/licence.html).

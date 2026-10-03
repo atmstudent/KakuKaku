@@ -277,8 +277,9 @@ class InstantInfoWindow(context: Context,
     {
         val sb = SpannableStringBuilder()
 
-        for ((entry, deinfInfo) in jmResults)
+        for (result in jmResults)
         {
+            val (entry, deinfInfo) = result
             val headingStart = sb.length
             sb.append(entry.kanji)
 
@@ -294,6 +295,8 @@ class InstantInfoWindow(context: Context,
                 sb.append(entry.readings)
                 if (DB_KANJIDICT_NAME != entry.dictionary) sb.append(")")
             }
+
+            if (result.pitch.isNotEmpty()) sb.append(" ").append(result.pitch)
 
             val deinfReason = deinfInfo!!.reason
             if (deinfReason != null && !deinfReason.isEmpty())
