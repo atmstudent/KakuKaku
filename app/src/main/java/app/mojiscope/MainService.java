@@ -59,7 +59,7 @@ public class MainService extends Service implements Stoppable {
         public void onReceive(Context context, Intent intent)
         {
             SharedPreferences prefs = context.getSharedPreferences(Constants.MOJI_PREF_FILE, Context.MODE_PRIVATE);
-            boolean imagePreview = prefs.getBoolean(Constants.MOJI_PREF_IMAGE_FILTER, true);
+            boolean imagePreview = prefs.getBoolean(Constants.MOJI_PREF_IMAGE_FILTER, false);
             prefs.edit().putBoolean(Constants.MOJI_PREF_IMAGE_FILTER, !imagePreview).apply();
 
             MojiTools.startMojiscopeService(context, new Intent(context, MainService.class));
@@ -99,7 +99,7 @@ public class MainService extends Service implements Stoppable {
         public void onReceive(Context context, Intent intent)
         {
             SharedPreferences prefs = context.getSharedPreferences(Constants.MOJI_PREF_FILE, Context.MODE_PRIVATE);
-            boolean pageMode = prefs.getBoolean(Constants.MOJI_PREF_INSTANT_MODE, true);
+            boolean pageMode = prefs.getBoolean(Constants.MOJI_PREF_INSTANT_MODE, false);
             prefs.edit().putBoolean(Constants.MOJI_PREF_INSTANT_MODE, !pageMode).apply();
 
             MojiTools.startMojiscopeService(context, new Intent(context, MainService.class));

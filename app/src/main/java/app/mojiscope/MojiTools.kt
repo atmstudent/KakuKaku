@@ -46,8 +46,8 @@ fun getPrefs(context: Context): Prefs
 
     return Prefs(
             TextDirection.valueOf(prefs.getString(MOJI_PREF_TEXT_DIRECTION, TextDirection.AUTO.toString()).toString()),
-            prefs.getBoolean(MOJI_PREF_IMAGE_FILTER, true),
-            prefs.getBoolean(MOJI_PREF_INSTANT_MODE, true),
+            prefs.getBoolean(MOJI_PREF_IMAGE_FILTER, false),
+            prefs.getBoolean(MOJI_PREF_INSTANT_MODE, false),
             prefs.getBoolean(MOJI_PREF_SHOW_HIDE, true))
 }
 

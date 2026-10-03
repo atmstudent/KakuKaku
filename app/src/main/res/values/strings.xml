@@ -6,7 +6,7 @@
     <string name="stop_button">Stop</string>
     <string name="overlay_needed">Press Start first to grant the overlay permission</string>
     <string name="try_it_label">Try it: place the capture box over the text below, or select the text and choose Mojiscope</string>
-    <string name="sample_horizontal">吾輩は猫である。\n名前はまだ無い。\n今日は天気がいいですね。</string>
+    <string name="sample_horizontal">吾輩は猫である。\n名前はまだ無い。\n今日は天気がいい。</string>
     <string name="sample_vertical">日\n本\n語\nを\n読\nむ</string>
     <string name="moji_loading">Mojiscope is loading…</string>
     <string name="beta_screen">"Thanks for installing the beta version of Mojiscope! If you didn't intend to install the beta version, I highly recommend that you go to the Play Store and leave the beta program - the beta version of Mojiscope may be unstable and more prone to bugs. If you are not in the beta program and but still seeing this message, please let me know right away by e-mailing me below!
