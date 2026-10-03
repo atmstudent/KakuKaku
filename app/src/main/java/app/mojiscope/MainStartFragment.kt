@@ -1,6 +1,9 @@
 package app.mojiscope
 
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -10,6 +13,7 @@ import android.widget.Button
 import android.widget.PopupMenu
 import android.widget.ProgressBar
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
@@ -37,7 +41,9 @@ class MainStartFragment : Fragment()
         startButton = rootView.findViewById(R.id.start_button)
 
         rootView.findViewById<View>(R.id.menu_button).setOnClickListener { showMenu(it) }
-        startButton.setOnClickListener { mainActivity.onStartPressed() }
+        startButton.setOnClickListener {
+            if (MainService.IsRunning()) mainActivity.onStopPressed() else mainActivity.onStartPressed()
+        }
 
         // Keep content clear of the status and navigation bars (edge-to-edge on Android 15+)
         ViewCompat.setOnApplyWindowInsetsListener(rootView) { v, insets ->
@@ -64,18 +70,37 @@ class MainStartFragment : Fragment()
         popup.show()
     }
 
+    override fun onStart()
+    {
+        super.onStart()
+
+        // The service can also be stopped from its notification, so follow its state
+        ContextCompat.registerReceiver(requireContext(), stateReceiver, IntentFilter(MainService.ACTION_STATE_CHANGED), ContextCompat.RECEIVER_NOT_EXPORTED)
+    }
+
+    override fun onStop()
+    {
+        requireContext().unregisterReceiver(stateReceiver)
+        super.onStop()
+    }
+
     override fun onResume()
     {
         super.onResume()
+        refreshState()
+    }
 
-        if (MainService.IsRunning())
+    private val stateReceiver = object : BroadcastReceiver()
+    {
+        override fun onReceive(context: Context, intent: Intent)
         {
-            onMojiscopeLoaded()
+            refreshState()
         }
-        else
-        {
-            onMojiscopeIdle()
-        }
+    }
+
+    private fun refreshState()
+    {
+        if (MainService.IsRunning()) onMojiscopeLoaded() else onMojiscopeIdle()
     }
 
     private fun onMojiscopeIdle()
@@ -83,7 +108,7 @@ class MainStartFragment : Fragment()
         progressBar.isIndeterminate = false
         progressBar.progress = 0
         startButton.isEnabled = true
-        startButton.visibility = View.VISIBLE
+        startButton.text = getString(R.string.start_button)
         supportText.text = getString(R.string.start_hint)
     }
 
@@ -99,7 +124,8 @@ class MainStartFragment : Fragment()
     {
         progressBar.isIndeterminate = false
         progressBar.progress = 100
-        startButton.visibility = View.GONE
+        startButton.isEnabled = true
+        startButton.text = getString(R.string.stop_button)
         writeSupportText()
     }
 

@@ -141,6 +141,8 @@ public class MainService extends Service implements Stoppable {
         }
     }
 
+    public static final String ACTION_STATE_CHANGED = "app.mojiscope.ACTION_STATE_CHANGED";
+
     private static boolean isMojiscopeRunning = false;
 
     private static final int VIRTUAL_DISPLAY_FLAGS = DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY | DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC;
@@ -198,6 +200,7 @@ public class MainService extends Service implements Stoppable {
 
         ServiceCompat.startForeground(this, NOTIFICATION_ID, getNotification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
         isMojiscopeRunning = true;
+        notifyStateChanged();
     }
 
     @Override
@@ -264,6 +267,7 @@ public class MainService extends Service implements Stoppable {
         mWindowCoordinator.stopAllWindows();
         mWindowCoordinator = null;
         isMojiscopeRunning = false;
+        notifyStateChanged();
 
         Log.d(TAG, String.format("MAINSERVICE: %s DESTROYED", System.identityHashCode(this)));
         super.onDestroy();
@@ -276,6 +280,11 @@ public class MainService extends Service implements Stoppable {
         {
             mMediaProjection.stop();
         }
+    }
+
+    private void notifyStateChanged()
+    {
+        sendBroadcast(new Intent(ACTION_STATE_CHANGED).setPackage(getPackageName()));
     }
 
     public static boolean IsRunning()

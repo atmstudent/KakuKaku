@@ -104,6 +104,11 @@ class MainActivity : AppCompatActivity()
         requestPermissionsInOrder()
     }
 
+    fun onStopPressed()
+    {
+        stopService(Intent(this, MainService::class.java))
+    }
+
     private fun startMojiscope()
     {
         val startFragment = supportFragmentManager.findFragmentById(R.id.main_fragment) as? MainStartFragment ?: return
