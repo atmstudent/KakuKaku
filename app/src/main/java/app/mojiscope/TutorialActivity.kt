@@ -5,17 +5,18 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentManager
-import androidx.fragment.app.FragmentStatePagerAdapter
+import androidx.viewpager2.adapter.FragmentStateAdapter
 import app.mojiscope.databinding.ActivityTutorialBinding
+import com.google.android.material.tabs.TabLayoutMediator
 
 class TutorialActivity : AppCompatActivity()
 {
-    inner class SectionsPagerAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm)
+    private inner class SectionsPagerAdapter : FragmentStateAdapter(this)
     {
-        override fun getItem(position: Int): Fragment
+        override fun createFragment(position: Int): Fragment
         {
-            if (position == 0){
+            if (position == 0)
+            {
                 return TutorialWelcomeFragment.newInstance()
             }
             if (position in 1..9)
@@ -26,13 +27,12 @@ class TutorialActivity : AppCompatActivity()
             return TutorialEndFragment.newInstance()
         }
 
-        override fun getCount(): Int
+        override fun getItemCount(): Int
         {
             return 11
         }
     }
 
-    private lateinit var mSectionsPagerAdapter: FragmentStatePagerAdapter
     private lateinit var mBinding: ActivityTutorialBinding
 
     override fun onCreate(savedInstanceState: Bundle?)
@@ -49,10 +49,9 @@ class TutorialActivity : AppCompatActivity()
             WindowInsetsCompat.CONSUMED
         }
 
-        mSectionsPagerAdapter = SectionsPagerAdapter(supportFragmentManager)
-        mBinding.container.adapter = mSectionsPagerAdapter
+        mBinding.container.adapter = SectionsPagerAdapter()
         mBinding.container.offscreenPageLimit = 1
-        mBinding.tabIndicator.setupWithViewPager(mBinding.container)
+        TabLayoutMediator(mBinding.tabIndicator, mBinding.container) { _, _ -> }.attach()
     }
 
     companion object

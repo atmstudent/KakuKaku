@@ -88,7 +88,7 @@ class KanjiCharacterView : FrameLayout, GestureDetector.OnGestureListener, IReca
         // Font padding pushes the glyph toward the bottom of the cell; drop it so the glyph is centered
         mKanjiTextView.includeFontPadding = false
         mKanjiTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20.toFloat())
-        mKanjiTextView.setTextColor(Color.BLACK)
+        mKanjiTextView.setTextColor(ContextCompat.getColor(context, R.color.window_on_surface))
 
         addView(mKanjiTextView)
 

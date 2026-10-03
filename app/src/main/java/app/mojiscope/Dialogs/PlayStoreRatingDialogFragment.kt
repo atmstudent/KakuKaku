@@ -1,6 +1,6 @@
 package app.mojiscope.Dialogs
 
-import android.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import android.app.Dialog
 import android.os.Bundle
 import androidx.fragment.app.DialogFragment
@@ -19,7 +19,7 @@ class PlayStoreRatingDialogFragment : DialogFragment()
     {
         return activity?.let {
 
-            val builder = AlertDialog.Builder(it)
+            val builder = MaterialAlertDialogBuilder(it)
             val prefs = requireContext().getSharedPreferences(MOJI_PREF_FILE, Context.MODE_PRIVATE)
 
             builder.setTitle("Thanks for your feedback!")

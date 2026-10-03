@@ -1,6 +1,6 @@
 package app.mojiscope.Dialogs
 
-import android.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import android.app.Dialog
 import android.content.Context
 import android.os.Bundle
@@ -18,7 +18,7 @@ class StarRatingDialogFragment : DialogFragment()
     {
         return activity?.let {
 
-            val builder = AlertDialog.Builder(it)
+            val builder = MaterialAlertDialogBuilder(it)
 
             val inflater = requireActivity().layoutInflater;
             val view = inflater.inflate(R.layout.dialog_rating_stars, null)

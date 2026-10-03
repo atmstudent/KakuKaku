@@ -39,27 +39,6 @@ class TutorialFragment : Fragment()
         return mRootView
     }
 
-    override fun onStart()
-    {
-        super.onStart()
-
-        mButtonLayout.viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener
-        {
-            override fun onGlobalLayout()
-            {
-                val drawableHeight = mButtonLayout.y.toInt()
-
-                val params = LinearLayout.LayoutParams(WRAP_CONTENT, drawableHeight - dpToPx(context!!, 20))
-                params.gravity = Gravity.CENTER_HORIZONTAL
-                params.setMargins(0, dpToPx(context!!, 20), 0, 0)
-                mVideoView.layoutParams = params
-                mVideoView.requestLayout()
-
-                mButtonLayout.viewTreeObserver.removeOnGlobalLayoutListener(this)
-            }
-        })
-    }
-
     override fun onResume()
     {
         super.onResume()

@@ -33,7 +33,7 @@
 
         <TextView
             android:id="@+id/history_window_layout_button"
-            android:textColor="@android:color/black"
+            android:textColor="@color/window_on_surface"
             android:layout_width="30dp"
             android:layout_height="30dp"
             android:background="@drawable/bg_solid_border_corners_0_white_black_round"
@@ -53,7 +53,7 @@
         <TextView
             android:padding="5dp"
             android:id="@+id/history_dict_result"
-            android:textColor="@android:color/black"
+            android:textColor="@color/window_on_surface"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content" />
     </LinearLayout>

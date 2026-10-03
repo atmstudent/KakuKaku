@@ -5,13 +5,14 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@color/Primary"
-    tools:context=".TutorialWelcomeFragment">
+    android:background="?attr/colorSurface"
+    tools:context=".TutorialEndFragment">
 
     <LinearLayout
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginStart="32dp"
+        android:layout_marginEnd="32dp"
         android:orientation="vertical"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -24,32 +25,32 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
             android:text="画"
-            android:textColor="@color/PrimaryDark"
-            android:textSize="200dp" />
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="160sp" />
 
         <TextView
-            android:layout_width="300dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Enjoy Mojiscope!"
-            android:textColor="@color/PrimaryDark"
-            android:textSize="32dp" />
+            android:textAppearance="?attr/textAppearanceHeadlineMedium"
+            android:textColor="?attr/colorOnSurface" />
 
         <TextView
             android:id="@+id/tutorial_end_text"
-            android:layout_width="300dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="16dp"
             android:text="Good luck in your Japanese journey. The road will be long and hard, but it will be worth it."
-            android:textColor="@color/PrimaryDark"
-            android:textSize="20dp" />
+            android:textAppearance="?attr/textAppearanceBodyLarge"
+            android:textColor="?attr/colorOnSurfaceVariant" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/tutorial_end_start_moji"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
-            android:layout_marginTop="30dp"
-            android:text="Start Mojiscope"/>
+            android:layout_marginTop="32dp"
+            android:text="Back to Mojiscope" />
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

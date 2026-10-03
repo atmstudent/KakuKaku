@@ -1,5 +1,6 @@
 package app.mojiscope.Windows
 
+import androidx.core.content.ContextCompat
 import android.content.Context
 import android.graphics.Color
 import android.util.Log
@@ -98,7 +99,7 @@ class InstantInfoWindow(context: Context,
             if (!addedToWindowManager)
             {
                 textInfo.text = displayData.text
-                textInfo.setTextColor(Color.BLACK)
+                textInfo.setTextColor(ContextCompat.getColor(context, R.color.window_on_surface))
 
                 if (isBoxHorizontal)
                 {

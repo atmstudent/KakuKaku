@@ -61,6 +61,7 @@ dependencies {
     implementation 'com.atilika.kuromoji:kuromoji-core:0.9.0'
     implementation 'com.atilika.kuromoji:kuromoji-ipadic:0.9.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.2.0'
+    implementation 'androidx.viewpager2:viewpager2:1.1.0'
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'com.j256.ormlite:ormlite-core:6.1'
     testImplementation 'com.j256.ormlite:ormlite-jdbc:6.1'

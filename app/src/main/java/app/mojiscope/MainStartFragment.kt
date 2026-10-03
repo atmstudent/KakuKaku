@@ -10,13 +10,13 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
-import android.widget.PopupMenu
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
+import com.google.android.material.appbar.MaterialToolbar
 
 class MainStartFragment : Fragment()
 {
@@ -40,7 +40,14 @@ class MainStartFragment : Fragment()
 
         startButton = rootView.findViewById(R.id.start_button)
 
-        rootView.findViewById<View>(R.id.menu_button).setOnClickListener { showMenu(it) }
+        rootView.findViewById<MaterialToolbar>(R.id.toolbar).setOnMenuItemClickListener {
+            when (it.itemId)
+            {
+                R.id.menu_tutorial -> startActivity(Intent(mainActivity, TutorialActivity::class.java))
+                R.id.menu_source -> startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/0xbad1d3a5/Kaku")))
+            }
+            true
+        }
         startButton.setOnClickListener {
             if (MainService.IsRunning()) mainActivity.onStopPressed() else mainActivity.onStartPressed()
         }
@@ -53,21 +60,6 @@ class MainStartFragment : Fragment()
         }
 
         return rootView
-    }
-
-    private fun showMenu(anchor: View)
-    {
-        val popup = PopupMenu(requireContext(), anchor)
-        popup.menuInflater.inflate(R.menu.home_menu, popup.menu)
-        popup.setOnMenuItemClickListener {
-            when (it.itemId)
-            {
-                R.id.menu_tutorial -> startActivity(Intent(mainActivity, TutorialActivity::class.java))
-                R.id.menu_source -> startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/0xbad1d3a5/Kaku")))
-            }
-            true
-        }
-        popup.show()
     }
 
     override fun onStart()

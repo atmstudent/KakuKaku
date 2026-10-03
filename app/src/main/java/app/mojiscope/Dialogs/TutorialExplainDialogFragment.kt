@@ -1,6 +1,6 @@
 package app.mojiscope.Dialogs
 
-import android.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import android.app.Dialog
 import android.os.Bundle
 import androidx.fragment.app.DialogFragment
@@ -18,7 +18,7 @@ class TutorialExplainDialogFragment : DialogFragment()
 
         return activity?.let {
 
-            val builder = AlertDialog.Builder(it)
+            val builder = MaterialAlertDialogBuilder(it)
 
             builder.setTitle(mTitle)
                     .setMessage(mMessage)

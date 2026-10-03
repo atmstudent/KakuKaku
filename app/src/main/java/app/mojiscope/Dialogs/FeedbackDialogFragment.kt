@@ -1,6 +1,6 @@
 package app.mojiscope.Dialogs
 
-import android.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import android.app.Dialog
 import android.content.ActivityNotFoundException
 import android.content.Context
@@ -18,7 +18,7 @@ class FeedbackDialogFragment : DialogFragment()
     {
         return activity?.let {
 
-            val builder = AlertDialog.Builder(it)
+            val builder = MaterialAlertDialogBuilder(it)
 
             builder.setTitle("Thanks for your feedback!")
                     .setMessage("Do you have anything you wish to say to the developer about Mojiscope? Bugs, feature requests, annoyances, anything goes!")

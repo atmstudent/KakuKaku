@@ -1,5 +1,6 @@
 package app.mojiscope.Windows
 
+import androidx.core.content.ContextCompat
 import android.content.Context
 import android.graphics.Color
 import android.opengl.Visibility
@@ -190,7 +191,7 @@ class HistoryWindow(context: Context,
         val tv = TextView(context)
         val padding = dpToPx(context, 5)
 
-        tv.setTextColor(Color.BLACK)
+        tv.setTextColor(ContextCompat.getColor(context, R.color.window_on_surface))
         tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15.toFloat())
 
         if (index == 0)

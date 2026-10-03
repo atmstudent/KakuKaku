@@ -1,13 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="Primary">#FFFFFF</color>
-    <color name="Accent">#FF4081</color>
+    <!-- Material 3 color roles (light). Dark variants live in values-night. -->
+    <color name="md_primary">#0061A4</color>
+    <color name="md_on_primary">#FFFFFF</color>
+    <color name="md_primary_container">#D1E4FF</color>
+    <color name="md_on_primary_container">#001D36</color>
+    <color name="md_surface">#FDFCFF</color>
+    <color name="md_on_surface">#1A1C1E</color>
+    <color name="md_surface_variant">#DFE2EB</color>
+    <color name="md_on_surface_variant">#43474E</color>
+    <color name="md_outline">#73777F</color>
+
     <color name="ic_launcher_background">#FFFFFF</color>
 
-    <color name="PrimaryDark">#000000</color>
-    <color name="AccentDark">#FF4081</color>
-
-    <color name="important">#ff0000</color>
+    <!-- Overlay windows drawn over other apps -->
+    <color name="window_surface">#FFFFFF</color>
+    <color name="window_on_surface">#000000</color>
+    <color name="window_border">#CABBBBBB</color>
 
     <color name="black100a">#64000000</color>
     <color name="translucent">#22000000</color>
