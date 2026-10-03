@@ -68,11 +68,6 @@
                 android:text="@string/start_button"
                 android:textAppearance="?attr/textAppearanceTitleMedium" />
 
-            <com.google.android.material.progressindicator.LinearProgressIndicator
-                android:id="@+id/progress_bar"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp" />
 
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/example_area"

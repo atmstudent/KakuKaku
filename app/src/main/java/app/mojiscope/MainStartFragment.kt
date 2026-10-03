@@ -10,7 +10,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
-import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
@@ -24,7 +23,6 @@ class MainStartFragment : Fragment()
     private lateinit var rootView : View
 
     private lateinit var supportText : TextView
-    private lateinit var progressBar : ProgressBar
     private lateinit var startButton : Button
 
 
@@ -36,7 +34,6 @@ class MainStartFragment : Fragment()
         rootView = inflater.inflate(R.layout.fragment_start, container, false)
 
         supportText = rootView.findViewById(R.id.support_text)
-        progressBar = rootView.findViewById(R.id.progress_bar)
 
         startButton = rootView.findViewById(R.id.start_button)
 
@@ -97,8 +94,6 @@ class MainStartFragment : Fragment()
 
     private fun onMojiscopeIdle()
     {
-        progressBar.isIndeterminate = false
-        progressBar.progress = 0
         startButton.isEnabled = true
         startButton.text = getString(R.string.start_button)
         supportText.text = getString(R.string.start_hint)
@@ -106,16 +101,12 @@ class MainStartFragment : Fragment()
 
     fun onMojiscopeLoadStart()
     {
-        progressBar.isIndeterminate = true
-        progressBar.progress = 0
         startButton.isEnabled = false
         supportText.text = getString(R.string.moji_loading)
     }
 
     fun onMojiscopeLoaded()
     {
-        progressBar.isIndeterminate = false
-        progressBar.progress = 100
         startButton.isEnabled = true
         startButton.text = getString(R.string.stop_button)
         writeSupportText()
