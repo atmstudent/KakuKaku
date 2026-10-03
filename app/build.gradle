@@ -27,6 +27,8 @@ android {
 
     buildTypes {
         release {
+            // Personal, sideloaded app: the debug key signs release builds too, so they install (and update over debug builds)
+            signingConfig signingConfigs.debug
             debuggable false
             minifyEnabled true
             shrinkResources true

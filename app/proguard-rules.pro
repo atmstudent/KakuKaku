@@ -23,3 +23,7 @@
 -dontwarn java.lang.management.**
 -dontwarn org.slf4j.**
 -dontwarn com.j256.ormlite.**
+
+# ML Kit finds its components by reflection; R8 removes the registrars' constructors otherwise and OCR fails to start
+-keep class * implements com.google.firebase.components.ComponentRegistrar { <init>(); }
+-keep class * implements com.google.firebase.components.ComponentRegistrar
