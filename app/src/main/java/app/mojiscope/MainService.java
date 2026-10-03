@@ -191,11 +191,6 @@ public class MainService extends Service implements Stoppable {
         mMediaProjectionManager = (MediaProjectionManager) getSystemService(MEDIA_PROJECTION_SERVICE);
         mHandler = new MainServiceHandler(this, mWindowCoordinator);
 
-        // Set preferences for ratings
-        SharedPreferences prefs = getSharedPreferences(Constants.MOJI_PREF_FILE, Context.MODE_PRIVATE);
-        int timesLaunched = prefs.getInt(Constants.MOJI_PREF_TIMES_LAUNCHED, 1);
-        prefs.edit().putInt(Constants.MOJI_PREF_TIMES_LAUNCHED, timesLaunched + 1).apply();
-
         ContextCompat.registerReceiver(this, mScreenOffReceiver, mIntentFilter, ContextCompat.RECEIVER_NOT_EXPORTED);
 
         ServiceCompat.startForeground(this, NOTIFICATION_ID, getNotification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);

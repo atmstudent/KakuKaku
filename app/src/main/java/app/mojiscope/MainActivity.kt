@@ -4,7 +4,6 @@ import android.Manifest
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.media.projection.MediaProjectionConfig
 import android.media.projection.MediaProjectionManager
@@ -18,14 +17,11 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import app.mojiscope.Dialogs.StarRatingDialogFragment
 
 
 class MainActivity : AppCompatActivity()
 {
-    private var mShownRating = false
 
-    private lateinit var mPrefs : SharedPreferences
     private lateinit var mStartMojiscopeIntent: Intent
 
     private val relaunchAppText = "Relaunch Mojiscope after verifying permission"
@@ -64,19 +60,10 @@ class MainActivity : AppCompatActivity()
     {
         super.onCreate(savedInstanceState)
 
-        mPrefs = getSharedPreferences(MOJI_PREF_FILE, Context.MODE_PRIVATE)
-
         supportActionBar?.hide()
         setContentView(R.layout.activity_main)
 
         setupMojiscopeDatabasesAndFiles(this)
-    }
-
-    override fun onStart()
-    {
-        super.onStart()
-
-        showRatingDialog()
     }
 
     override fun onPause()
@@ -182,24 +169,6 @@ class MainActivity : AppCompatActivity()
             mediaProjectionManager.createScreenCaptureIntent()
         }
         projectionLauncher.launch(captureIntent)
-    }
-
-    private fun showRatingDialog()
-    {
-        if (mShownRating)
-        {
-            return
-        }
-
-        mShownRating = true
-
-        val timesLaunched = mPrefs.getInt(MOJI_PREF_TIMES_LAUNCHED, 1)
-        val rated = mPrefs.getBoolean(MOJI_PREF_PLAY_STORE_RATED, false)
-
-        if (timesLaunched % 20 == 0 && !rated)
-        {
-            StarRatingDialogFragment().show(supportFragmentManager, "StarRating")
-        }
     }
 
     companion object

@@ -17,8 +17,6 @@ const val MOJI_PREF_SHOW_HIDE = "ShowHide"
 const val MOJI_PREF_IMAGE_FILTER = "ImageFilter"
 const val MOJI_PREF_TEXT_DIRECTION = "TextDirection"
 const val MOJI_PREF_INSTANT_MODE = "InstantMode"
-const val MOJI_PREF_TIMES_LAUNCHED = "TimesLaunched"
-const val MOJI_PREF_PLAY_STORE_RATED = "PlayStoreRated"
 
 const val EXTRA_PROJECTION_RESULT_CODE = "app.mojiscope.PROJECTION_RESULT_CODE"
 const val EXTRA_PROJECTION_RESULT_INTENT = "app.mojiscope.PROJECTION_RESULT_INTENT"
