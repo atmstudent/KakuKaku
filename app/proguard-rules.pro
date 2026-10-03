@@ -15,3 +15,11 @@
 #-keepclassmembers class fqcn.of.javascript.interface.for.webview {
 #   public *;
 #}
+
+# OrmLite uses reflection over annotated model classes
+-keep class app.mojiscope.Database.** { *; }
+-keepclassmembers class * { @com.j256.ormlite.field.DatabaseField *; }
+-dontwarn javax.persistence.**
+-dontwarn java.lang.management.**
+-dontwarn org.slf4j.**
+-dontwarn com.j256.ormlite.**

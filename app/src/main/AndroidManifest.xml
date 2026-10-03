@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="ca.fuwafuwa.kaku">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:allowBackup="true"
@@ -15,19 +14,15 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
-        <meta-data
-            android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="@string/ads_app_id" />
-
-        <receiver android:name=".MainService$CloseMainService" />
-        <receiver android:name=".MainService$TogglePageModeMainService" />
-        <receiver android:name=".MainService$ToggleInstantModeMainService" />
-        <receiver android:name=".MainService$ToggleImagePreviewMainService" />
-        <receiver android:name=".MainService$ToggleShowHideMainService" />
+        <receiver android:name=".MainService$CloseMainService" android:exported="false" />
+        <receiver android:name=".MainService$TogglePageModeMainService" android:exported="false" />
+        <receiver android:name=".MainService$ToggleInstantModeMainService" android:exported="false" />
+        <receiver android:name=".MainService$ToggleImagePreviewMainService" android:exported="false" />
+        <receiver android:name=".MainService$ToggleShowHideMainService" android:exported="false" />
 
         <activity
             android:name=".MainActivity"
-            android:label="Kaku"
+            android:label="Mojiscope"
             android:noHistory="false"
             android:launchMode="standard"
             android:screenOrientation="portrait"
@@ -38,16 +33,10 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".BetaActivity"
-            android:label="Kaku Beta"
-            android:noHistory="false"
-            android:launchMode="standard"
-            android:screenOrientation="portrait">
-        </activity>
-
         <activity
             android:name=".TutorialActivity"
-            android:label="Kaku Tutorial"
+            android:exported="false"
+            android:label="Mojiscope Tutorial"
             android:noHistory="false"
             android:launchMode="standard"
             android:screenOrientation="portrait">
@@ -55,7 +44,7 @@
 
         <activity
             android:name=".PassthroughActivity"
-            android:label="Kaku"
+            android:label="Mojiscope"
             android:launchMode="singleInstance"
             android:noHistory="true"
             android:exported="true">
@@ -74,7 +63,7 @@
         <service
             android:name=".MainService"
             android:foregroundServiceType="mediaProjection"
-            android:exported="true" />
+            android:exported="false" />
     </application>
 
 </manifest>

@@ -30,7 +30,7 @@
         <TextView
             android:layout_width="300dp"
             android:layout_height="wrap_content"
-            android:text="Enjoy Kaku!"
+            android:text="Enjoy Mojiscope!"
             android:textColor="@color/PrimaryDark"
             android:textSize="32dp" />
 
@@ -44,12 +44,12 @@
             android:textSize="20dp" />
 
         <Button
-            android:id="@+id/tutorial_end_start_kaku"
+            android:id="@+id/tutorial_end_start_moji"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="30dp"
-            android:text="Start Kaku"/>
+            android:text="Start Mojiscope"/>
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
