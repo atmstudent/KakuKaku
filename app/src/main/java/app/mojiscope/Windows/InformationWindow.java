@@ -7,6 +7,10 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.graphics.PixelFormat;
 import android.os.Build;
+import android.graphics.Typeface;
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
+import android.text.style.StyleSpan;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.Gravity;
@@ -38,6 +42,7 @@ import app.mojiscope.Windows.Interfaces.ICopyText;
 import app.mojiscope.Windows.Interfaces.IRecalculateKanjiViews;
 import app.mojiscope.Windows.Interfaces.ISearchPerformer;
 import app.mojiscope.Windows.Views.KanjiGridView;
+import app.mojiscope.Windows.Views.MaxHeightLinearLayout;
 
 /**
  * Created by 0xbad1d3a5 on 4/23/2016.
@@ -163,6 +168,9 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
     public void show()
     {
         mDictResults.setText("");
+
+        // The window never takes more than two thirds of the screen height
+        ((MaxHeightLinearLayout) mInfoWindow).setMaxHeightPx(getRealDisplaySize().y * 2 / 3);
 
         window.setVisibility(View.VISIBLE);
         params.y = 0; // onScroll changes this value
@@ -335,10 +343,11 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
 
     private void displayResults(List<JmSearchResult> jmResults)
     {
-        StringBuilder sb = new StringBuilder();
+        SpannableStringBuilder sb = new SpannableStringBuilder();
 
         for (JmSearchResult jmSearchResult : jmResults)
         {
+            int headingStart = sb.length();
             sb.append(jmSearchResult.getEntry().getKanji());
 
             if (!jmSearchResult.getEntry().getReadings().isEmpty()){
@@ -358,6 +367,9 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
                 sb.append(String.format(" %s", deinfReason));
             }
 
+            // The first line of every entry (the word and its reading) is bold
+            sb.setSpan(new StyleSpan(Typeface.BOLD), headingStart, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+
             sb.append("\n");
             sb.append(getMeaning(jmSearchResult.getEntry()));
             sb.append("\n\n");
@@ -365,10 +377,10 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
 
         if (sb.length() > 2)
         {
-            sb.setLength(sb.length() - 2);
+            sb.delete(sb.length() - 2, sb.length());
         }
 
-        mDictResults.setText(sb.toString());
+        mDictResults.setText(sb);
     }
 
     private String getMeaning(EntryOptimized entry)

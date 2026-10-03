@@ -1,5 +1,9 @@
 package app.mojiscope.Windows
 
+import android.graphics.Typeface
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.style.StyleSpan
 import androidx.core.content.ContextCompat
 import android.content.Context
 import android.graphics.Color
@@ -117,7 +121,7 @@ class InstantInfoWindow(context: Context,
                         height = bottomRectHeight
                     }
 
-                    height = minOf(height, maxHeight)
+                    height = minOf(height, maxHeight, maxHeightForScreen())
                     calcParamsForHorizontal(dpToPx(context, 400), height)
                 } else
                 {
@@ -137,7 +141,7 @@ class InstantInfoWindow(context: Context,
                     }
 
                     width = minOf(width, maxWidth)
-                    calcParamsForVertical(width, dpToPx(context, 600))
+                    calcParamsForVertical(width, minOf(dpToPx(context, 600), maxHeightForScreen()))
                 }
 
                 window.visibility = INVISIBLE
@@ -271,10 +275,11 @@ class InstantInfoWindow(context: Context,
 
     private fun displayResults(jmResults: List<JmSearchResult>)
     {
-        val sb = StringBuilder()
+        val sb = SpannableStringBuilder()
 
         for ((entry, deinfInfo) in jmResults)
         {
+            val headingStart = sb.length
             sb.append(entry.kanji)
 
             if (!entry.readings.isEmpty())
@@ -296,6 +301,9 @@ class InstantInfoWindow(context: Context,
                 sb.append(String.format(" %s", deinfReason))
             }
 
+            // The first line of every entry (the word and its reading) is bold
+            sb.setSpan(StyleSpan(Typeface.BOLD), headingStart, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+
             sb.append("\n")
             sb.append(getMeaning(entry))
             sb.append("\n\n")
@@ -303,10 +311,10 @@ class InstantInfoWindow(context: Context,
 
         if (sb.length > 2)
         {
-            sb.setLength(sb.length - 2)
+            sb.delete(sb.length - 2, sb.length)
         }
 
-        textInfo.text = sb.toString()
+        textInfo.text = sb
     }
 
     private fun getMeaning(entry: EntryOptimized): String
@@ -337,6 +345,12 @@ class InstantInfoWindow(context: Context,
         }
 
         return sb.toString()
+    }
+
+    /** The window never takes more than two thirds of the screen height */
+    private fun maxHeightForScreen(): Int
+    {
+        return realDisplaySize.y * 2 / 3
     }
 
     private fun setPadding(l: Int, t: Int, r: Int, b: Int)

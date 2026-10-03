@@ -2,21 +2,21 @@ package app.mojiscope
 
 import android.net.Uri
 import android.os.Bundle
-import android.provider.OpenableColumns
+import android.content.Intent
 import android.view.LayoutInflater
 import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import app.mojiscope.Dictionary.DictionaryFormatException
+import app.mojiscope.Dictionary.DictionaryImport
 import app.mojiscope.Dictionary.DictionarySelection
 import app.mojiscope.Dictionary.UserDictionaryStore
 import app.mojiscope.databinding.ActivityDictionariesBinding
 import app.mojiscope.databinding.ItemDictionaryBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
-import java.io.IOException
 import java.text.NumberFormat
 import java.util.concurrent.Executors
 
@@ -27,7 +27,6 @@ class DictionariesActivity : AppCompatActivity()
 {
     private lateinit var mBinding: ActivityDictionariesBinding
     private val mExecutor = Executors.newSingleThreadExecutor()
-    private var mImporting = false
 
     private val mPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) importDictionary(uri)
@@ -116,99 +115,87 @@ class DictionariesActivity : AppCompatActivity()
                 .show()
     }
 
+    /**
+     * The import itself runs in a foreground service, so it carries on if you leave this screen or the app
+     */
     private fun importDictionary(uri: Uri)
     {
-        if (mImporting) return
-        mImporting = true
+        if (DictionaryImport.isRunning) return
 
-        mBinding.importButton.isEnabled = false
-        mBinding.importProgress.visibility = View.VISIBLE
-        mBinding.importStatus.visibility = View.VISIBLE
-        mBinding.importStatus.text = getString(R.string.dictionary_importing, 0, "0")
-
-        val numbers = NumberFormat.getIntegerInstance()
-        val totalBytes = fileSize(uri)
-
-        // With a known file size the bar shows how much of the zip has been read
-        if (totalBytes > 0)
+        // The service reads the file after this screen may be gone, so keep the permission to read it
+        try
         {
-            mBinding.importProgress.isIndeterminate = false
-            mBinding.importProgress.max = PROGRESS_STEPS
-            mBinding.importProgress.progress = 0
+            contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        else
+        catch (e: SecurityException)
         {
-            mBinding.importProgress.isIndeterminate = true
+            // Not every provider offers persistable permissions; the grant passed with the intent still works
         }
 
-        mExecutor.execute {
-            var message: String
-            try
-            {
-                var lastUpdate = 0L
+        val intent = Intent(this, DictionaryImportService::class.java)
+                .setData(uri)
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        ContextCompat.startForegroundService(this, intent)
 
-                val result = UserDictionaryStore.get(this).import({ contentResolver.openInputStream(uri) ?: throw IOException("The file could not be opened") }, { count, bytesRead ->
-                    // Banks arrive a few thousand entries at a time, so this is not called too often; still skip updates that come too fast
-                    val now = System.currentTimeMillis()
-                    if (now - lastUpdate > 100)
-                    {
-                        lastUpdate = now
-                        val percent = if (totalBytes > 0) (bytesRead * 100 / totalBytes).toInt().coerceIn(0, 99) else 0
-                        runOnUiThread {
-                            if (totalBytes > 0) mBinding.importProgress.setProgressCompat((percent * PROGRESS_STEPS / 100), true)
-                            mBinding.importStatus.text = getString(R.string.dictionary_importing, percent, numbers.format(count))
-                        }
-                    }
-                }, {
-                    runOnUiThread {
-                        if (totalBytes > 0) mBinding.importProgress.setProgressCompat(PROGRESS_STEPS, true)
-                        mBinding.importStatus.text = getString(R.string.dictionary_finishing)
-                    }
-                })
+        // Show something right away; the service publishes the real progress in a moment
+        DictionaryImport.publish(DictionaryImport.Progress(0, 0, false, false))
+    }
 
-                runOnUiThread {
-                    DictionarySelection.set(this, result.dictionary.id)
-                }
-                message = getString(R.string.dictionary_import_done, result.dictionary.title, numbers.format(result.dictionary.entries))
-            }
-            catch (e: DictionaryFormatException)
+    /** Shows the progress of a running import, or the result of one that has just finished */
+    private val mImportListener: () -> Unit = { renderImportState() }
+
+    private fun renderImportState()
+    {
+        val progress = DictionaryImport.progress
+        val running = progress != null
+
+        mBinding.importButton.isEnabled = !running
+        mBinding.importProgress.visibility = if (running) View.VISIBLE else View.GONE
+        mBinding.importStatus.visibility = if (running) View.VISIBLE else View.GONE
+
+        if (progress != null)
+        {
+            if (progress.hasPercent)
             {
-                message = getString(R.string.dictionary_import_failed, e.message)
+                mBinding.importProgress.isIndeterminate = false
+                mBinding.importProgress.max = PROGRESS_STEPS
+                mBinding.importProgress.setProgressCompat(progress.percent * PROGRESS_STEPS / 100, true)
             }
-            catch (e: Exception)
+            else
             {
-                message = getString(R.string.dictionary_import_failed, e.message ?: e.javaClass.simpleName)
+                mBinding.importProgress.isIndeterminate = true
             }
 
-            runOnUiThread {
-                mImporting = false
-                mBinding.importButton.isEnabled = true
-                mBinding.importProgress.visibility = View.GONE
-                mBinding.importStatus.visibility = View.GONE
-                refresh()
-                Snackbar.make(mBinding.root, message, Snackbar.LENGTH_LONG).show()
+            mBinding.importStatus.text = when
+            {
+                progress.finishing -> getString(R.string.dictionary_finishing)
+                else -> getString(R.string.dictionary_importing, progress.percent, NumberFormat.getIntegerInstance().format(progress.entries))
             }
+        }
+
+        // A result that arrived while this screen was not showing is reported once, now
+        DictionaryImport.takeMessage()?.let { message ->
+            refresh()
+            Snackbar.make(mBinding.root, message, Snackbar.LENGTH_LONG).show()
         }
     }
 
-    /** Size of the picked file in bytes, or -1 if the provider doesn't say */
-    private fun fileSize(uri: Uri): Long
+    override fun onStart()
     {
-        return try
-        {
-            contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { c ->
-                if (c.moveToFirst() && !c.isNull(0)) c.getLong(0) else -1L
-            } ?: -1L
-        }
-        catch (e: Exception)
-        {
-            -1L
-        }
+        super.onStart()
+        DictionaryImport.addListener(mImportListener)
+        renderImportState()
+    }
+
+    override fun onStop()
+    {
+        DictionaryImport.removeListener(mImportListener)
+        super.onStop()
     }
 
     private fun openLink(url: String)
     {
-        startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(url)))
+        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
     }
 
     companion object

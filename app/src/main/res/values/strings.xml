@@ -21,6 +21,9 @@
     <string name="dictionary_subtitle_format">%1$s entries</string>
     <string name="dictionary_subtitle_revision_format">%1$s entries · revision %2$s</string>
     <string name="dictionary_importing">Importing… %1$d%% · %2$s entries</string>
+    <string name="dictionary_notification_channel">Dictionary import</string>
+    <string name="dictionary_notification_title">Importing dictionary</string>
+    <string name="dictionary_notification_starting">Starting…</string>
     <string name="dictionary_finishing">Finishing…</string>
     <string name="dictionary_import_done">Imported \"%1$s\" (%2$s entries) and selected it</string>
     <string name="dictionary_import_failed">Import failed: %1$s</string>
