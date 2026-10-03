@@ -6,7 +6,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import androidx.fragment.app.Fragment
-import app.mojiscope.Dialogs.GrantPermissionDialogFragment
 
 class TutorialEndFragment : Fragment()
 {
@@ -19,7 +18,7 @@ class TutorialEndFragment : Fragment()
         val button = rootView.findViewById<Button>(R.id.tutorial_end_start_moji)
 
         button.setOnClickListener {
-            GrantPermissionDialogFragment().show(parentFragmentManager, "GrantPermission")
+            requireActivity().finish()
         }
 
         return rootView

@@ -68,17 +68,10 @@ class MainActivity : AppCompatActivity()
 
         mPrefs = getSharedPreferences(MOJI_PREF_FILE, Context.MODE_PRIVATE)
 
-        if (isFirstLaunch())
-        {
-            startActivity(Intent(this, TutorialActivity::class.java))
-            finish()
-        }
-        else {
-            supportActionBar?.hide()
-            setContentView(R.layout.activity_main)
+        supportActionBar?.hide()
+        setContentView(R.layout.activity_main)
 
-            setupMojiscopeDatabasesAndFiles(this)
-        }
+        setupMojiscopeDatabasesAndFiles(this)
     }
 
     override fun onStart()
@@ -198,11 +191,6 @@ class MainActivity : AppCompatActivity()
         {
             StarRatingDialogFragment().show(supportFragmentManager, "StarRating")
         }
-    }
-
-    private fun isFirstLaunch() : Boolean
-    {
-        return mPrefs.getBoolean(MOJI_PREF_FIRST_LAUNCH, true)
     }
 
     companion object
