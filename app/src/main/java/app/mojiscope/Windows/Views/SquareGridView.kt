@@ -13,6 +13,9 @@ import app.mojiscope.*
 open class SquareGridView : ViewGroup
 {
     protected var squareCellSize = 0
+
+    /** Space kept free around the cells, so that something drawn slightly outside a cell is not cut off */
+    protected var contentInset = 0
     protected var maxSquares = 0
 
     private var mItemCount = 0
@@ -41,7 +44,7 @@ open class SquareGridView : ViewGroup
 
     private fun Init(context: Context)
     {
-        squareCellSize = dpToPx(context, 30)
+        squareCellSize = dpToPx(context, DEFAULT_CELL_SIZE_DP)
     }
 
     fun setCellSize(dp: Int)
@@ -72,8 +75,8 @@ open class SquareGridView : ViewGroup
         }
 
         // set width to squareCellSize * count if width is smaller than screen, and just screen width if larger
-        val x = View.resolveSize(squareCellSize * count, widthMeasureSpec)
-        mRows = Math.ceil(mItemCount.toDouble() / (x / squareCellSize).toDouble()).toInt()
+        val x = View.resolveSize(squareCellSize * count + 2 * contentInset, widthMeasureSpec)
+        mRows = Math.ceil(mItemCount.toDouble() / ((x - 2 * contentInset) / squareCellSize).toDouble()).toInt()
         mRows = if (mRows <= 0) 1 else mRows
 
         when (mRowLimit)
@@ -83,15 +86,16 @@ open class SquareGridView : ViewGroup
             2 -> { mRows = if (mRows >= 8) 8 else mRows }
         }
 
-        val y = View.resolveSize(squareCellSize * mRows, heightMeasureSpec)
+        val y = View.resolveSize(squareCellSize * mRows + 2 * contentInset, heightMeasureSpec)
 
         setMeasuredDimension(x, y)
     }
 
     override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int)
     {
-        var columns = (r - l) / squareCellSize
-        val xStart = (r - l - squareCellSize * columns) / 2
+        val contentWidth = r - l - 2 * contentInset
+        var columns = contentWidth / squareCellSize
+        val xStart = contentInset + (contentWidth - squareCellSize * columns) / 2
         if (columns < 0)
         {
             columns = 1
@@ -99,7 +103,7 @@ open class SquareGridView : ViewGroup
 
         var rows = 1
         var x = xStart
-        var y = 0
+        var y = contentInset
         var i = 0
         val count = childCount
         for (index in 0 until count)
@@ -133,6 +137,8 @@ open class SquareGridView : ViewGroup
 
     companion object
     {
+        const val DEFAULT_CELL_SIZE_DP = 27
+
         private val TAG = SquareGridView::class.java.name
     }
 }

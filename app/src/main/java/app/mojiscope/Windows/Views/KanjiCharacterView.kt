@@ -173,22 +173,28 @@ class KanjiCharacterView : FrameLayout, GestureDetector.OnGestureListener, IReca
             return
         }
 
-        val w = width.toFloat()
-        val h = height.toFloat()
         val half = mStrokePaint.strokeWidth / 2f
+
+        // The box is a little bigger than the cell: above and below, and at the ends of a highlighted run
+        // (where it joins a highlighted neighbor it stops at the cell edge so the two merge)
+        val grow = dpToPx(context, HIGHLIGHT_GROW_DP).toFloat()
+        val joinedLeft = neighbor(-1)?.mHighlightState == mHighlightState
+        val joinedRight = neighbor(1)?.mHighlightState == mHighlightState
+        val left = if (joinedLeft) 0f else -grow
+        val right = width + (if (joinedRight) 0f else grow)
+        val top = -grow
+        val bottom = height + grow
 
         if (mHighlightState == HighlightState.FILLED)
         {
-            canvas.drawRect(0f, 0f, w, h, mFillPaint)
+            canvas.drawRect(left, top, right, bottom, mFillPaint)
         }
 
-        canvas.drawLine(0f, half, w, half, mStrokePaint)
-        canvas.drawLine(0f, h - half, w, h - half, mStrokePaint)
+        canvas.drawLine(left, top + half, right, top + half, mStrokePaint)
+        canvas.drawLine(left, bottom - half, right, bottom - half, mStrokePaint)
 
-        val joinedLeft = neighbor(-1)?.mHighlightState == mHighlightState
-        val joinedRight = neighbor(1)?.mHighlightState == mHighlightState
-        if (!joinedLeft) canvas.drawLine(half, 0f, half, h, mStrokePaint)
-        if (!joinedRight) canvas.drawLine(w - half, 0f, w - half, h, mStrokePaint)
+        if (!joinedLeft) canvas.drawLine(left + half, top, left + half, bottom, mStrokePaint)
+        if (!joinedRight) canvas.drawLine(right - half, top, right - half, bottom, mStrokePaint)
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int)
@@ -361,6 +367,8 @@ class KanjiCharacterView : FrameLayout, GestureDetector.OnGestureListener, IReca
 
     companion object
     {
+        const val HIGHLIGHT_GROW_DP = 3
+
         private val TAG = KanjiCharacterView::class.java.name
     }
 }

@@ -1,5 +1,6 @@
 package app.mojiscope.Windows.Views
 
+import app.mojiscope.dpToPx
 import android.content.Context
 import android.util.AttributeSet
 import app.mojiscope.Windows.Data.DisplayData
@@ -22,6 +23,13 @@ class KanjiGridView : SquareGridView, IRecalculateKanjiViews
     private var mScrollValue: Int = 0
 
     private val mKanjiCellSize = squareCellSize
+
+    init
+    {
+        // The highlight of a character sticks out of its cell a little (see KanjiCharacterView.onDraw)
+        clipChildren = false
+        contentInset = dpToPx(context, KanjiCharacterView.HIGHLIGHT_GROW_DP)
+    }
 
     var offset: Int = 0
         private set
