@@ -9,6 +9,7 @@ import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewTreeObserver
+import android.os.Build
 import android.view.WindowManager
 import android.view.animation.Animation
 import android.view.animation.AnimationUtils
@@ -417,8 +418,23 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
         params.x = realDisplaySize.x / 2 - params.width / 2
         params.y = realDisplaySize.y / 4 - params.height / 2
         params.alpha = 0.8F
+
+        // Let the box reach every part of the screen, including the area around the camera notch (some apps
+        // show text there, in landscape for example)
+        params.flags = params.flags or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
+        {
+            params.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+        }
+        else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
+        {
+            params.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+        }
+
         return params
     }
+
+    override fun usesFullScreenCoordinates(): Boolean = true
 
     private fun setPreviewImageForThreshold(e: MotionEvent)
     {

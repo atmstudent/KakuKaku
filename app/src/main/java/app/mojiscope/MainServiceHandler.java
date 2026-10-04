@@ -47,6 +47,10 @@ public class MainServiceHandler extends Handler {
             else {
                 InformationWindow infoWindow = mWindowCoordinator.getWindowOfType(Constants.WINDOW_INFO);
                 infoWindow.setResult(result.getDisplayData());
+                // The first character is looked up right away, like when the text comes from the share menu
+                if (!result.getDisplayData().getSquareChars().isEmpty()) {
+                    infoWindow.performSearch(result.getDisplayData().getSquareChars().get(0));
+                }
                 infoWindow.show();
             }
         }

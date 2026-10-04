@@ -372,6 +372,16 @@ public abstract class Window implements Stoppable, WindowListener {
     }
 
     /**
+     * @return true if the window's x and y are measured from the corner of the whole screen (it was given
+     * FLAG_LAYOUT_NO_LIMITS and may cover the status bar and the camera notch), false if they are measured from
+     * the corner of the area below the status bar
+     */
+    protected boolean usesFullScreenCoordinates()
+    {
+        return false;
+    }
+
+    /**
      * @return Real screen display size
      */
     protected Point getRealDisplaySize()
@@ -430,7 +440,7 @@ public abstract class Window implements Stoppable, WindowListener {
             params.y = 0;
         }
         else if (params.y + params.height > mRealDisplaySize.y) {
-            params.y = mRealDisplaySize.y - params.height - getStatusBarHeight();
+            params.y = mRealDisplaySize.y - params.height - (usesFullScreenCoordinates() ? 0 : getStatusBarHeight());
         }
         if (params.width > mRealDisplaySize.x){
             params.width = mRealDisplaySize.x;
