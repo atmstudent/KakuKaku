@@ -6,6 +6,7 @@ import android.util.Log
 import app.mojiscope.MOJI_PREF_FILE
 import app.mojiscope.MOJI_PREF_PITCH_ACCENT
 import app.mojiscope.PITCH_DATABASE_NAME
+import app.mojiscope.toHiragana
 import java.io.File
 
 /**
@@ -74,15 +75,6 @@ class PitchAccent private constructor(private val db: SQLiteDatabase?)
         fun setEnabled(context: Context, enabled: Boolean)
         {
             context.getSharedPreferences(MOJI_PREF_FILE, Context.MODE_PRIVATE).edit().putBoolean(MOJI_PREF_PITCH_ACCENT, enabled).apply()
-        }
-
-        /** Katakana to hiragana, so "ネコ" matches "ねこ" */
-        private fun toHiragana(text: String): String
-        {
-            return String(CharArray(text.length) { i ->
-                val ch = text[i]
-                if (ch in 'ァ'..'ヶ') ch - 0x60 else ch
-            })
         }
     }
 }

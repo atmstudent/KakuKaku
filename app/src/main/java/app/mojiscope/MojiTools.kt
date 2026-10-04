@@ -74,6 +74,23 @@ fun getRealScreenSize(context: Context): Point
     return size
 }
 
+/** Katakana to hiragana, so "ネコ" and "ねこ" count as the same reading */
+fun toHiragana(text: String): String
+{
+    return String(CharArray(text.length) { i ->
+        val ch = text[i]
+        if (ch in '\u30a1'..'\u30f6') ch - 0x60 else ch
+    })
+}
+
+fun toKatakana(text: String): String
+{
+    return String(CharArray(text.length) { i ->
+        val ch = text[i]
+        if (ch in '\u3041'..'\u3096') ch + 0x60 else ch
+    })
+}
+
 fun dpToPx(context: Context, dp: Int): Int
 {
     val displayMetrics = context.resources.displayMetrics

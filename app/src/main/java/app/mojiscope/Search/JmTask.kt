@@ -2,10 +2,14 @@ package app.mojiscope.Search
 
 import android.content.Context
 import android.util.Log
+import com.j256.ormlite.dao.Dao
+import com.j256.ormlite.dao.RawRowMapper
 import app.mojiscope.Dictionary.DictionarySelection
 import app.mojiscope.Dictionary.PitchAccent
 import app.mojiscope.Dictionary.UserDictionaryStore
 import app.mojiscope.DB_KANJIDICT_NAME
+import app.mojiscope.toHiragana
+import app.mojiscope.toKatakana
 import app.mojiscope.Database.JmDictDatabase.JmDatabaseHelper
 import app.mojiscope.Database.JmDictDatabase.Models.EntryOptimized
 import app.mojiscope.Deinflictor.DeinflectionInfo
@@ -53,20 +57,20 @@ constructor(private val mSearchInfo: SearchInfo, private val mSearchJmTaskDone: 
         character = character.replace("_", "\\_")
         character = character.replace("'", "''")
 
-        val builtInEntries: List<EntryOptimized> = entryOptimizedDao.queryBuilder().where().like("kanji", "$character%").query()
-
         // An imported dictionary replaces the bundled word dictionary; kanji information always comes from the bundled one
         val selectedDictionary = DictionarySelection.get(mContext)
         val entries: List<EntryOptimized> = if (selectedDictionary == DictionarySelection.BUILT_IN)
         {
-            builtInEntries
+            queryBundled(entryOptimizedDao, character, true)
         }
         else
         {
-            builtInEntries.filter { it.dictionary == DB_KANJIDICT_NAME } + UserDictionaryStore.get(mContext).search(selectedDictionary, firstChar)
+            queryBundled(entryOptimizedDao, character, false).filter { it.dictionary == DB_KANJIDICT_NAME } +
+                    UserDictionaryStore.get(mContext).search(selectedDictionary, firstChar)
         }
 
         val matchedEntries = rankResults(getMatchedEntries(text, textOffset, entries))
+        loadMeanings(entryOptimizedDao, matchedEntries)
 
         // Pitch accent comes from its own bundled dictionary, whichever word dictionary is selected
         if (PitchAccent.isEnabled(mContext))
@@ -82,14 +86,93 @@ constructor(private val mSearchInfo: SearchInfo, private val mSearchJmTaskDone: 
         return matchedEntries
     }
 
+    /**
+     * The bundled entries that start with [character] (already escaped for LIKE) in their written form and, if
+     * [byReading], in their reading too: とても is the reading of 迚も, which is hardly ever written in kanji.
+     * Readings are stored as one text ("ねこ, ネコ"), so a reading that starts with the character is either at the
+     * start of that text or after ", ". Kana can be written either way.
+     *
+     * Only the columns needed for matching and ranking are read; the long definitions of the thousands of entries
+     * that merely share a first character would make the lookup slow. See [loadMeanings].
+     */
+    private fun queryBundled(dao: Dao<EntryOptimized, Int>, character: String, byReading: Boolean): List<EntryOptimized>
+    {
+        val starts = if (byReading) listOf(character, toHiragana(character), toKatakana(character)).distinct() else emptyList()
+        val sql = StringBuilder("SELECT id, kanji, readings, pos, priorities, dictionary, primaryEntry FROM entryoptimized WHERE kanji LIKE ?")
+        val args = arrayListOf("$character%")
+        for (start in starts)
+        {
+            sql.append(" OR readings LIKE ? OR readings LIKE ?")
+            args.add("$start%")
+            args.add("%, $start%")
+        }
+
+        val mapper = RawRowMapper<EntryOptimized> { _, columns ->
+            EntryOptimized().also {
+                it.id = columns[0].toInt()
+                it.kanji = columns[1]
+                it.readings = columns[2]
+                it.pos = columns[3]
+                it.priorities = columns[4]
+                it.dictionary = columns[5]
+                it.isPrimaryEntry = columns[6] == "1" || columns[6] == "true"
+            }
+        }
+
+        return dao.queryRaw(sql.toString(), mapper, *args.toTypedArray()).use { it.toList() }
+    }
+
+    /** Fills in the definitions of the matched bundled entries, which [queryBundled] left out */
+    private fun loadMeanings(dao: Dao<EntryOptimized, Int>, results: List<JmSearchResult>)
+    {
+        for (result in results)
+        {
+            val entry = result.entry
+            if (entry.meanings == null && entry.id != null)
+            {
+                entry.meanings = dao.queryForId(entry.id)?.meanings ?: ""
+            }
+        }
+    }
+
     override fun onPostExecute(result: List<JmSearchResult>)
     {
         mSearchJmTaskDone.jmTaskCallback(result, mSearchInfo)
     }
 
+    /** The entries by written form and, as hiragana, by reading; kanji entries have no readings worth searching */
+    private class EntryIndex(entries: List<EntryOptimized>)
+    {
+        private val byWritten = HashMap<String, MutableList<EntryOptimized>>()
+        private val byReading = HashMap<String, MutableList<EntryOptimized>>()
+
+        init
+        {
+            for (entry in entries)
+            {
+                byWritten.getOrPut(entry.kanji) { ArrayList() }.add(entry)
+
+                if (entry.dictionary == DB_KANJIDICT_NAME) continue
+                for (reading in entry.readings.split(",").map { toHiragana(it.trim()) }.filter { it.isNotEmpty() }.distinct())
+                {
+                    byReading.getOrPut(reading) { ArrayList() }.add(entry)
+                }
+            }
+        }
+
+        /** Entries written as [word] first, then those read as [word] */
+        fun find(word: String): List<EntryOptimized>
+        {
+            val written = byWritten[word] ?: emptyList()
+            val read = byReading[toHiragana(word)] ?: return written
+            return if (written.isEmpty()) read else written + read.filter { it !in written }
+        }
+    }
+
     @Throws(SQLException::class)
     private fun getMatchedEntries(text: String, textOffset: Int, entries: List<EntryOptimized>): List<JmSearchResult>
     {
+        val index = EntryIndex(entries)
         val end = if (textOffset + 80 >= text.length) text.length else textOffset + 80
         var word = text.substring(textOffset, end)
         val seenEntries = HashSet<EntryOptimized>()
@@ -102,7 +185,7 @@ constructor(private val mSearchInfo: SearchInfo, private val mSearchJmTaskDone: 
             var count = 0
             for (deinfInfo in deinfResultsList)
             {
-                val filteredEntry: List<EntryOptimized> = entries.filter { entry -> entry.kanji == deinfInfo.word }
+                val filteredEntry: List<EntryOptimized> = index.find(deinfInfo.word)
 
                 if (filteredEntry.isEmpty())
                 {
@@ -137,7 +220,7 @@ constructor(private val mSearchInfo: SearchInfo, private val mSearchJmTaskDone: 
             }
 
             // Add all exact matches as well
-            val filteredEntry: List<EntryOptimized> = entries.filter { entry -> entry.kanji == word }
+            val filteredEntry: List<EntryOptimized> = index.find(word)
             for (entry in filteredEntry)
             {
                 if (seenEntries.contains(entry))
@@ -159,7 +242,7 @@ constructor(private val mSearchInfo: SearchInfo, private val mSearchJmTaskDone: 
     {
         return results.sortedWith(compareBy(
                 { getDictPriority(it) },
-                { 0 - it.entry.kanji.length },
+                { 0 - it.word.length }, // how much of the text the entry matched, conjugation included
                 { getEntryPriority(it) },
                 { getPriority(it) }))
     }
