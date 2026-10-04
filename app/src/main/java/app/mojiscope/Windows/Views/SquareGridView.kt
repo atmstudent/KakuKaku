@@ -20,6 +20,7 @@ open class SquareGridView : ViewGroup
 
     private var mItemCount = 0
     private var mRowLimit = 0
+    private var mMaxRows = 0
     private var mRows = 1
 
     constructor(context: Context) : super(context)
@@ -57,6 +58,14 @@ open class SquareGridView : ViewGroup
         mItemCount = items
     }
 
+    /** Never show more than this many rows, whatever the row limit says (0 means no cap) */
+    fun setMaxRows(maxRows: Int)
+    {
+        if (maxRows == mMaxRows) return
+        mMaxRows = maxRows
+        requestLayout()
+    }
+
     fun setRowLimit(rowLimit: Int)
     {
         mRowLimit = rowLimit
@@ -85,6 +94,8 @@ open class SquareGridView : ViewGroup
             1 -> { mRows = 1 }
             2 -> { mRows = if (mRows >= 8) 8 else mRows }
         }
+
+        if (mMaxRows > 0) mRows = Math.min(mRows, mMaxRows)
 
         val y = View.resolveSize(squareCellSize * mRows + 2 * contentInset, heightMeasureSpec)
 

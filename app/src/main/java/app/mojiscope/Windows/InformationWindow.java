@@ -10,11 +10,14 @@ import android.os.Build;
 import android.text.SpannableStringBuilder;
 import android.util.Log;
 import android.view.GestureDetector;
+import android.graphics.Point;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.ViewConfiguration;
 import android.view.WindowManager;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextSwitcher;
 
@@ -49,6 +52,9 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
 
     private static final String TAG = InformationWindow.class.getName();
     private static final float FLICK_THRESHOLD = -0.05f;
+
+    // A landscape screen shorter than this (a phone) has room for two rows of characters only
+    private static final float LANDSCAPE_TALL_SCREEN_DP = 600f;
 
     private GestureDetector mGestureDetector;
     private float mMaxFlingVelocity;
@@ -129,6 +135,43 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
     {
         options.reinitViewLayout = false;
         super.reInit(options);
+        applyOrientationLayout();
+    }
+
+    /**
+     * Portrait: a card across the top, never taller than two thirds of the screen.
+     * Landscape: a panel from the top to the bottom of the screen on the left, at most two thirds of its width,
+     * and on a phone (a screen that is short in landscape) at most two rows of characters.
+     */
+    private void applyOrientationLayout()
+    {
+        Point size = getRealDisplaySize();
+        boolean landscape = size.x > size.y;
+        float heightDp = size.y / context.getResources().getDisplayMetrics().density;
+
+        FrameLayout.LayoutParams layout = (FrameLayout.LayoutParams) mInfoWindow.getLayoutParams();
+        MaxHeightLinearLayout infoWindow = (MaxHeightLinearLayout) mInfoWindow;
+        if (landscape)
+        {
+            int margin = MojiTools.dpToPx(context, 10);
+            layout.width = size.x * 2 / 3 - margin;
+            layout.height = ViewGroup.LayoutParams.MATCH_PARENT;
+            layout.gravity = Gravity.TOP | Gravity.START;
+            layout.setMargins(margin, margin, 0, margin);
+            infoWindow.setMaxHeightPx(0);
+            mKanjiGrid.setMaxRows(heightDp < LANDSCAPE_TALL_SCREEN_DP ? 2 : 0);
+        }
+        else
+        {
+            int margin = MojiTools.dpToPx(context, 10);
+            layout.width = ViewGroup.LayoutParams.MATCH_PARENT;
+            layout.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+            layout.gravity = FrameLayout.LayoutParams.UNSPECIFIED_GRAVITY;
+            layout.setMargins(margin, margin, margin, MojiTools.dpToPx(context, 100));
+            infoWindow.setMaxHeightPx(size.y * 2 / 3);
+            mKanjiGrid.setMaxRows(0);
+        }
+        mInfoWindow.setLayoutParams(layout);
     }
 
     @Override
@@ -166,8 +209,7 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
     {
         mDictResults.setText("");
 
-        // The window never takes more than two thirds of the screen height
-        ((MaxHeightLinearLayout) mInfoWindow).setMaxHeightPx(getRealDisplaySize().y * 2 / 3);
+        applyOrientationLayout();
 
         window.setVisibility(View.VISIBLE);
         params.y = 0; // onScroll changes this value
