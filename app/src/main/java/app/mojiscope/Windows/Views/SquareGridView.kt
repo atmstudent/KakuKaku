@@ -137,7 +137,7 @@ open class SquareGridView : ViewGroup
 
     companion object
     {
-        const val DEFAULT_CELL_SIZE_DP = 27
+        const val DEFAULT_CELL_SIZE_DP = 25
 
         private val TAG = SquareGridView::class.java.name
     }
