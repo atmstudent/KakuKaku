@@ -134,6 +134,9 @@ open class SquareGridView : ViewGroup
                 rows++
                 if (rows > mRows)
                 {
+                    // Characters that do not fit (they are on the next page) must not stay where an earlier,
+                    // larger layout put them
+                    for (rest in index + 1 until count) getChildAt(rest).layout(0, 0, 0, 0)
                     break
                 }
             } else

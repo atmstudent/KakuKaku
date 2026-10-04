@@ -77,6 +77,16 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
 
         mKanjiGrid.setDependencies(windowCoordinator, this);
 
+        // The popup is as large as the screen, so its own size tells when the screen has been rotated. Windows opened
+        // from the share menu are not told about rotation by MainService, and the display size can lag behind it.
+        window.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+            boolean sizeChanged = (right - left) != (oldRight - oldLeft) || (bottom - top) != (oldBottom - oldTop);
+            if (sizeChanged && right > left && bottom > top) {
+                // Not during the layout pass: changing the layout params requests another one
+                window.post(this::applyOrientationLayout);
+            }
+        });
+
         try {
             mSearcher = new Searcher(context);
             mSearcher.registerCallback(this);
@@ -145,7 +155,10 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
      */
     private void applyOrientationLayout()
     {
-        Point size = getRealDisplaySize();
+        // The window covers the whole screen, so its size is the current screen size
+        Point size = window.getWidth() > 0 && window.getHeight() > 0
+                ? new Point(window.getWidth(), window.getHeight())
+                : getRealDisplaySize();
         boolean landscape = size.x > size.y;
         float heightDp = size.y / context.getResources().getDisplayMetrics().density;
 
