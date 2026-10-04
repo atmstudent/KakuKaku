@@ -29,6 +29,8 @@ android {
         release {
             // Personal, sideloaded app: the debug key signs release builds too, so they install (and update over debug builds)
             signingConfig signingConfigs.debug
+            // ML Kit ships its OCR library per CPU type (about 11 MB each). Phones and e-ink tablets are arm64
+            ndk { abiFilters 'arm64-v8a' }
             debuggable false
             minifyEnabled true
             shrinkResources true
@@ -36,6 +38,8 @@ android {
         }
         debug {
             debuggable true
+            // arm64 for phones, x86_64 for the emulator
+            ndk { abiFilters 'arm64-v8a', 'x86_64' }
         }
     }
 
