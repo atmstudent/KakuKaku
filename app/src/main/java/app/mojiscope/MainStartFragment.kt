@@ -4,7 +4,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -42,7 +41,6 @@ class MainStartFragment : Fragment()
             {
                 R.id.menu_dictionaries -> startActivity(Intent(mainActivity, DictionariesActivity::class.java))
                 R.id.menu_tutorial -> startActivity(Intent(mainActivity, TutorialActivity::class.java))
-                R.id.menu_source -> startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/0xbad1d3a5/Kaku")))
             }
             true
         }
