@@ -293,7 +293,6 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
             }
         })
 
-        //windowCoordinator.getWindow(Constants.WINDOW_HISTORY).show();
     }
 
     override fun reInit(options: Window.ReinitOptions)
@@ -380,7 +379,6 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
     override fun stop()
     {
         mOcr.stop()
-        //windowCoordinator.getWindow(Constants.WINDOW_HISTORY).hide();
         super.stop()
     }
 

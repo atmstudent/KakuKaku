@@ -29,7 +29,6 @@ const val WINDOW_INFO = "WINDOW_INFO"
 const val WINDOW_EDIT = "WINDOW_EDIT"
 const val WINDOW_INSTANT_KANJI = "WINDOW_INSTANT_KANJI"
 const val WINDOW_KANJI_CHOICE = "WINDOW_KANJI_CHOICE"
-const val WINDOW_HISTORY = "WINDOW_HISTORY"
 
 const val MOJI_CHANNEL_ID = "moji_notification_channel_id"
 const val MOJI_CHANNEL_NAME = "Show Mojiscope Notification"

@@ -12,7 +12,6 @@ import java.sql.SQLException;
 import app.mojiscope.Constants;
 import app.mojiscope.Database.DatabaseHelper;
 import app.mojiscope.Database.JmDictDatabase.Models.EntryOptimized;
-import app.mojiscope.Database.KanjiDict2Database.Models.CharacterOptimized;
 import app.mojiscope.Exceptions.NotImplementedException;
 
 /**

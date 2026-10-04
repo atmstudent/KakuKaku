@@ -19,7 +19,6 @@ import app.mojiscope.Constants;
 import app.mojiscope.Database.DatabaseHelper;
 import app.mojiscope.Database.IDatabaseHelper;
 import app.mojiscope.Database.JmDictDatabase.Models.EntryOptimized;
-import app.mojiscope.Database.KanjiDict2Database.Models.CharacterOptimized;
 import app.mojiscope.XmlParsers.Interfaces.DictParser;
 import app.mojiscope.XmlParsers.KanjiDict2.Kd2DTO.Kd2Character;
 import app.mojiscope.XmlParsers.KanjiDict2.Kd2DTO.Kd2Meaning;
