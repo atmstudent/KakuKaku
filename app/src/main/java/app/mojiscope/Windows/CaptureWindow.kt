@@ -27,7 +27,6 @@ import app.mojiscope.Prefs
 import app.mojiscope.R
 import app.mojiscope.TextDirection
 import app.mojiscope.Windows.Interfaces.WindowListener
-import app.mojiscope.XmlParsers.CommonParser
 
 /**
  * Created by 0xbad1d3a5 on 4/13/2016.
@@ -49,8 +48,6 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
     private var mProcessingPreview: Boolean = false
     private var mProcessingOcr: Boolean = false
     private var mScreenshotForOcr: ScreenshotForOcr? = null
-
-    private var mCommonParser: CommonParser? = null
 
     private val screenshotForOcr: ScreenshotForOcr?
         get()
@@ -257,8 +254,6 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
     {
         show()
 
-        this.mCommonParser = CommonParser(context)
-
         mImageView = window.findViewById(R.id.capture_image)
         mFadeRepeat = AnimationUtils.loadAnimation(this.context, R.anim.fade_repeat)
         mBorderDefault = this.context.resources.getDrawable(R.drawable.bg_translucent_border_0_blue_blue, null)
@@ -305,8 +300,6 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
     {
         mLastDoubleTapTime = System.currentTimeMillis()
         performOcr(false)
-
-        // mCommonParser!!.parseJmDict()
 
         return true
     }

@@ -12,27 +12,7 @@ import java.sql.SQLException;
 
 import app.mojiscope.Constants;
 import app.mojiscope.Database.DatabaseHelper;
-import app.mojiscope.Database.JmDictDatabase.Models.Entry;
 import app.mojiscope.Database.JmDictDatabase.Models.EntryOptimized;
-import app.mojiscope.Database.JmDictDatabase.Models.Kanji;
-import app.mojiscope.Database.JmDictDatabase.Models.KanjiIrregularity;
-import app.mojiscope.Database.JmDictDatabase.Models.KanjiPriority;
-import app.mojiscope.Database.JmDictDatabase.Models.Meaning;
-import app.mojiscope.Database.JmDictDatabase.Models.MeaningAdditionalInfo;
-import app.mojiscope.Database.JmDictDatabase.Models.MeaningAntonym;
-import app.mojiscope.Database.JmDictDatabase.Models.MeaningCrossReference;
-import app.mojiscope.Database.JmDictDatabase.Models.MeaningDialect;
-import app.mojiscope.Database.JmDictDatabase.Models.MeaningField;
-import app.mojiscope.Database.JmDictDatabase.Models.MeaningGloss;
-import app.mojiscope.Database.JmDictDatabase.Models.MeaningKanjiRestriction;
-import app.mojiscope.Database.JmDictDatabase.Models.MeaningLoanSource;
-import app.mojiscope.Database.JmDictDatabase.Models.MeaningMisc;
-import app.mojiscope.Database.JmDictDatabase.Models.MeaningPartOfSpeech;
-import app.mojiscope.Database.JmDictDatabase.Models.MeaningReadingRestriction;
-import app.mojiscope.Database.JmDictDatabase.Models.Reading;
-import app.mojiscope.Database.JmDictDatabase.Models.ReadingIrregularity;
-import app.mojiscope.Database.JmDictDatabase.Models.ReadingPriority;
-import app.mojiscope.Database.JmDictDatabase.Models.ReadingRestriction;
 import app.mojiscope.Exceptions.NotImplementedException;
 import app.mojiscope.MojiTools;
 
