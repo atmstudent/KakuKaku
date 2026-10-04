@@ -24,7 +24,7 @@ class MainActivity : AppCompatActivity()
 
     private lateinit var mStartMojiscopeIntent: Intent
 
-    private val relaunchAppText = "Relaunch Mojiscope after verifying permission"
+    private val relaunchAppText = "Relaunch Kaku2 after verifying permission"
 
     private val overlayLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         if (Settings.canDrawOverlays(this))
@@ -124,7 +124,7 @@ class MainActivity : AppCompatActivity()
             }.start()
         }
         else {
-            Toast.makeText(this, "Unable to start Mojiscope service", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Unable to start Kaku2 service", Toast.LENGTH_LONG).show()
         }
     }
 

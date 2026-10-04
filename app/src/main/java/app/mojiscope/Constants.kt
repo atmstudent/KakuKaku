@@ -31,7 +31,7 @@ const val WINDOW_INSTANT_KANJI = "WINDOW_INSTANT_KANJI"
 const val WINDOW_KANJI_CHOICE = "WINDOW_KANJI_CHOICE"
 
 const val MOJI_CHANNEL_ID = "moji_notification_channel_id"
-const val MOJI_CHANNEL_NAME = "Show Mojiscope Notification"
+const val MOJI_CHANNEL_NAME = "Show Kaku2 Notification"
 
 const val REQUEST_SERVICE_TOGGLE_IMAGE_PREVIEW = 300
 const val REQUEST_SERVICE_TOGGLE_PAGE_MODE = 400

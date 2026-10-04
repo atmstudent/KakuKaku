@@ -24,14 +24,14 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
-            android:text="画"
+            android:text="画2"
             android:textColor="?attr/colorOnSurface"
             android:textSize="160sp" />
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Enjoy Mojiscope!"
+            android:text="Enjoy Kaku2!"
             android:textAppearance="?attr/textAppearanceHeadlineMedium"
             android:textColor="?attr/colorOnSurface" />
 
@@ -50,7 +50,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="32dp"
-            android:text="Back to Mojiscope" />
+            android:text="Back to Kaku2" />
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

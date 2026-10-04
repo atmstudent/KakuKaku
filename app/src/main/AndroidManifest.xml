@@ -25,7 +25,7 @@
 
         <activity
             android:name=".MainActivity"
-            android:label="Mojiscope"
+            android:label="Kaku2"
             android:noHistory="false"
             android:launchMode="standard"
             android:screenOrientation="portrait"
@@ -45,7 +45,7 @@
         <activity
             android:name=".TutorialActivity"
             android:exported="false"
-            android:label="Mojiscope Tutorial"
+            android:label="Kaku2 Tutorial"
             android:noHistory="false"
             android:launchMode="standard"
             android:screenOrientation="portrait">
@@ -53,7 +53,7 @@
 
         <activity
             android:name=".PassthroughActivity"
-            android:label="Mojiscope"
+            android:label="Kaku2"
             android:theme="@style/AppTheme.Invisible"
             android:launchMode="singleInstance"
             android:noHistory="true"

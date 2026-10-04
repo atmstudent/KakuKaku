@@ -1,6 +1,6 @@
 <resources>
-    <string name="app_name">Mojiscope</string>
-    <string name="support_text">Mojiscope is running. Drag the box over Japanese text, then double-tap it.</string>
+    <string name="app_name">Kaku2</string>
+    <string name="support_text">Kaku2 is running. Drag the box over Japanese text, then double-tap it.</string>
     <string name="menu_dictionaries">Dictionaries</string>
     <string name="dictionaries_title">Dictionaries</string>
     <string name="dictionary_back">Back</string>
@@ -9,7 +9,6 @@
     <string name="dictionary_import">Import dictionary (.zip)</string>
     <string name="pitch_header">Pitch accent</string>
     <string name="pitch_title">Pitch accent (built in)</string>
-    <string name="pitch_subtitle">アクセント辞典. Shows the accent after the reading, like 猫 (ねこ) [1]. Works with any word dictionary.</string>
     <string name="dictionary_builtin_title">JMdict (built in)</string>
     <string name="dictionary_builtin_subtitle">JMdict and KANJIDIC, October 2026</string>
     <string name="dictionary_update_title">Update the dictionary</string>
@@ -35,8 +34,8 @@
     <string name="start_button">Start</string>
     <string name="stop_button">Stop</string>
     <string name="overlay_needed">Press Start first to grant the overlay permission</string>
-    <string name="try_it_label">Try it: place the capture box over the text below, or select the text and choose Mojiscope</string>
+    <string name="try_it_label">Try it: place the capture box over the text below, or select the text and choose Kaku2</string>
     <string name="sample_horizontal">吾輩は猫である。\n今日は天気がとてもよかったので、友達と一緒に公園へ散歩に行って、桜の花を見ながらお弁当を食べました。</string>
     <string name="sample_vertical">日\n本\n語\nを\n読\nむ</string>
-    <string name="moji_loading">Mojiscope is loading…</string>
+    <string name="moji_loading">Kaku2 is loading…</string>
 </resources>

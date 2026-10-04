@@ -1,16 +1,16 @@
-Mojiscope (formerly Kaku): 文字 (もじ) - character, letter
+Kaku2 (formerly Mojiscope, originally Kaku): 文字 (もじ) - character, letter
 
 Fork of [Kaku](https://github.com/0xbad1d3a5/Kaku), modernized for current Android (ML Kit OCR).
 
-Mojiscope is a fast, powerful Japanese dictionary that stays on top of all your apps. It uses optical character recognition (OCR) technology to recognize kanji on the device screen for you (rather than the slowww tedious process of looking up individual characters manually), making it perfect for Japanese learners who want to study by reading raw manga, play untranslated games, and so on without the hassle of switching apps.
+Kaku2 is a fast, powerful Japanese dictionary that stays on top of all your apps. It uses optical character recognition (OCR) technology to recognize kanji on the device screen for you (rather than the slowww tedious process of looking up individual characters manually), making it perfect for Japanese learners who want to study by reading raw manga, play untranslated games, and so on without the hassle of switching apps.
 
 ## Dictionaries
 
-Mojiscope ships with JMdict and KANJIDIC data from **October 2026**. You can import newer or additional dictionaries from the three-dot menu on the home screen, under **Dictionaries**. There you can also choose which dictionary is used for word lookups. Kanji information always comes from the built-in dictionary.
+Kaku2 ships with JMdict and KANJIDIC data from **October 2026**. You can import newer or additional dictionaries from the three-dot menu on the home screen, under **Dictionaries**. There you can also choose which dictionary is used for word lookups. Kanji information always comes from the built-in dictionary.
 
 ### Format
 
-Mojiscope reads dictionaries in the **Yomitan (formerly Yomichan) format**: a single `.zip` file, which you import as it is (do not unpack it). The zip must contain, at its top level:
+Kaku2 reads dictionaries in the **Yomitan (formerly Yomichan) format**: a single `.zip` file, which you import as it is (do not unpack it). The zip must contain, at its top level:
 
 | File | Required | Used for |
 |------|----------|----------|
@@ -36,7 +36,7 @@ The dictionaries listed on the [Yomitan wiki](https://yomitan.wiki/dictionaries/
 - **Wiktionary** in many languages: <https://yomidevs.github.io/wiktionary-to-yomitan/download/>.
 - **CC-CEDICT** (Chinese to English): <https://github.com/MarvNC/cc-cedict-yomitan>.
 
-Mojiscope itself works offline and never downloads anything: get the `.zip` with a browser, then import it from the Dictionaries screen.
+Kaku2 itself works offline and never downloads anything: get the `.zip` with a browser, then import it from the Dictionaries screen.
 
 ### Rebuilding the bundled dictionary
 

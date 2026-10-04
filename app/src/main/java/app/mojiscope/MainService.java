@@ -332,17 +332,17 @@ public class MainService extends Service implements Stoppable {
 
         Prefs prefs = MojiTools.getPrefs(this);
 
-        String contentTitle = "Mojiscope";
+        String contentTitle = "Kaku2";
         switch (prefs.getTextDirectionSetting())
         {
             case AUTO:
-                contentTitle = "Mojiscope is determining text direction automatically";
+                contentTitle = "Kaku2 is determining text direction automatically";
                 break;
             case VERTICAL:
-                contentTitle = "Mojiscope is reading text vertically";
+                contentTitle = "Kaku2 is reading text vertically";
                 break;
             case HORIZONTAL:
-                contentTitle = "Mojiscope is reading text horizontally";
+                contentTitle = "Kaku2 is reading text horizontally";
                 break;
         }
 
@@ -362,7 +362,7 @@ public class MainService extends Service implements Stoppable {
         else {
             n = new NotificationCompat.Builder(this, channelId)
                     .setSmallIcon(R.drawable.moji_notification_icon)
-                    .setContentTitle("Mojiscope is hidden and in power-saving mode")
+                    .setContentTitle("Kaku2 is hidden and in power-saving mode")
                     .setContentIntent(toggleShowHide)
                     .build();
         }

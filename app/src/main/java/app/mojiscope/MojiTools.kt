@@ -140,7 +140,7 @@ fun setupMojiscopeDatabasesAndFiles(context: Context)
     }
     catch (e: Exception)
     {
-        Toast.makeText(context, "Unable to setup Mojiscope database", Toast.LENGTH_LONG).show()
+        Toast.makeText(context, "Unable to setup Kaku2 database", Toast.LENGTH_LONG).show()
         return
     }
 }
