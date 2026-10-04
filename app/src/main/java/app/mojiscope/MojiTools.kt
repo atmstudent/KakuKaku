@@ -77,13 +77,15 @@ fun getRealScreenSize(context: Context): Point
 fun dpToPx(context: Context, dp: Int): Int
 {
     val displayMetrics = context.resources.displayMetrics
-    return Math.round(dp * (displayMetrics.xdpi / DisplayMetrics.DENSITY_DEFAULT))
+    // Same scale as the dp and sp units in layouts. The display's physical dpi (xdpi) must not be used:
+    // e-ink tablets report one that differs from the density, which made the cells smaller than their text
+    return Math.round(dp * displayMetrics.density)
 }
 
 fun pxToDp(context: Context, px: Int): Int
 {
     val displayMetrics = context.resources.displayMetrics
-    return Math.round(px / (displayMetrics.xdpi / DisplayMetrics.DENSITY_DEFAULT))
+    return Math.round(px / displayMetrics.density)
 }
 
 /**
