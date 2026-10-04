@@ -1,9 +1,6 @@
 package app.mojiscope.Windows
 
 import android.text.SpannableStringBuilder
-import android.text.Spanned
-import android.text.style.AbsoluteSizeSpan
-import app.mojiscope.Windows.Views.KanjiCharacterView
 import androidx.core.content.ContextCompat
 import android.content.Context
 import android.graphics.Color
@@ -296,7 +293,15 @@ class InstantInfoWindow(context: Context,
                 if (DB_KANJIDICT_NAME != entry.dictionary) sb.append(")")
             }
 
-            if (result.pitch.isNotEmpty()) sb.append(" ").append(result.pitch)
+            var pitchStart = -1
+            var pitchEnd = -1
+            if (result.pitch.isNotEmpty())
+            {
+                sb.append(" ")
+                pitchStart = sb.length
+                sb.append(result.pitch)
+                pitchEnd = sb.length
+            }
 
             val deinfReason = deinfInfo!!.reason
             if (deinfReason != null && !deinfReason.isEmpty())
@@ -304,8 +309,7 @@ class InstantInfoWindow(context: Context,
                 sb.append(String.format(" %s", deinfReason))
             }
 
-            // The first line of every entry (the word and its reading) is as large as the characters above
-            sb.setSpan(AbsoluteSizeSpan(KanjiCharacterView.CHARACTER_TEXT_SIZE_DP, true), headingStart, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            HeadingStyle.apply(context, sb, headingStart, pitchStart, pitchEnd)
 
             sb.append("\n")
             sb.append(getMeaning(entry))
