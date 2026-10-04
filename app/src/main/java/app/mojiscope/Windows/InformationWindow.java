@@ -7,10 +7,9 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.graphics.PixelFormat;
 import android.os.Build;
-import android.graphics.Typeface;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
-import android.text.style.StyleSpan;
+import android.text.style.AbsoluteSizeSpan;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.Gravity;
@@ -41,6 +40,7 @@ import app.mojiscope.Windows.Data.SquareChar;
 import app.mojiscope.Windows.Interfaces.ICopyText;
 import app.mojiscope.Windows.Interfaces.IRecalculateKanjiViews;
 import app.mojiscope.Windows.Interfaces.ISearchPerformer;
+import app.mojiscope.Windows.Views.KanjiCharacterView;
 import app.mojiscope.Windows.Views.KanjiGridView;
 import app.mojiscope.Windows.Views.MaxHeightLinearLayout;
 
@@ -371,8 +371,8 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
                 sb.append(String.format(" %s", deinfReason));
             }
 
-            // The first line of every entry (the word and its reading) is bold
-            sb.setSpan(new StyleSpan(Typeface.BOLD), headingStart, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            // The first line of every entry (the word and its reading) is as large as the characters above
+            sb.setSpan(new AbsoluteSizeSpan(KanjiCharacterView.CHARACTER_TEXT_SIZE_DP, true), headingStart, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 
             sb.append("\n");
             sb.append(getMeaning(jmSearchResult.getEntry()));
