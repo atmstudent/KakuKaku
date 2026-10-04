@@ -15,15 +15,19 @@ KANJI = Image.open(os.path.join(os.path.dirname(__file__), 'icon_kanji.png')).co
 FOREGROUND = {'mdpi': 108, 'hdpi': 162, 'xhdpi': 216, 'xxhdpi': 324, 'xxxhdpi': 432}
 LEGACY = {'mdpi': 48, 'hdpi': 72, 'xhdpi': 96, 'xxhdpi': 144, 'xxxhdpi': 192}
 
-KANJI_SCALE = 0.94   # the 2 takes some room, so 画 is a little smaller than before
-DIGIT_HEIGHT = 0.70  # of the kanji's height
+DIGIT_HEIGHT = 1.0   # the 2 is as tall as 画 (of the kanji's height)
 GAP = 0.07           # of the kanji's width
+
+# Width of 画2 as a fraction of the icon. The adaptive icon shows only the middle two thirds of its layer, and the
+# legacy icon is a rounded square of about 80% of the file: both fractions leave a generous margin around the logo
+FOREGROUND_ART_WIDTH = 0.46
+LEGACY_ART_WIDTH = 0.52
 
 
 def compose():
-    """画2 on a transparent canvas, tightly cropped, with 画 drawn at its original size scaled by KANJI_SCALE"""
-    kw = round(KANJI.width * KANJI_SCALE)
-    kanji = KANJI.resize((kw, kw), Image.LANCZOS)
+    """画2 on a transparent canvas, tightly cropped, with 画 at its original size"""
+    kw = KANJI.width
+    kanji = KANJI
 
     # Find the font size whose digit is DIGIT_HEIGHT of the kanji's height
     size = 100
@@ -53,13 +57,10 @@ def paste_centered(target, art, center, width):
 
 def main():
     art = compose()
-    old_kanji_width = KANJI.width  # in the 432 px foreground
 
     for density, size in FOREGROUND.items():
         image = Image.new('RGBA', (size, size), (0, 0, 0, 0))
-        # In the 432 px master the old glyph sat in the middle; 画 keeps its place relative to the whole art
-        scale = size / 432
-        paste_centered(image, art, (size / 2, size / 2), round(art.width * scale))
+        paste_centered(image, art, (size / 2, size / 2), round(size * FOREGROUND_ART_WIDTH))
         image.save(os.path.join(RES, f'mipmap-{density}', 'ic_launcher_foreground.png'))
 
     for density, size in LEGACY.items():
@@ -68,8 +69,7 @@ def main():
         mask = old.split()[3]
         icon = Image.new('RGBA', (size, size), (0, 0, 0, 0))
         icon.paste((255, 255, 255, 255), mask=mask)  # the white rounded square, glyph removed
-        # In the legacy icon the old glyph was about this wide (measured on the old files: 0.432 of the icon)
-        paste_centered(icon, art, (size / 2, size / 2), round(size * 0.432 * art.width / (art.height)))
+        paste_centered(icon, art, (size / 2, size / 2), round(size * LEGACY_ART_WIDTH))
         icon.save(path)
 
 
