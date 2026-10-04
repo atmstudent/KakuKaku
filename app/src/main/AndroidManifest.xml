@@ -54,6 +54,7 @@
         <activity
             android:name=".PassthroughActivity"
             android:label="Mojiscope"
+            android:theme="@style/AppTheme.Invisible"
             android:launchMode="singleInstance"
             android:noHistory="true"
             android:exported="true">

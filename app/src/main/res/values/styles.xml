@@ -16,4 +16,13 @@
         <item name="android:windowLightStatusBar">?attr/isLightTheme</item>
     </style>
 
+    <!-- For PassthroughActivity, which shows no UI of its own (it opens the popup and finishes): without
+         this Android draws an opaque full-screen window first, which flashes white -->
+    <style name="AppTheme.Invisible">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowAnimationStyle">@null</item>
+        <item name="android:backgroundDimEnabled">false</item>
+    </style>
+
 </resources>
