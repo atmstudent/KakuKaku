@@ -368,12 +368,15 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
                 pitchEnd = sb.length();
             }
 
+            int reasonStart = -1;
             String deinfReason = jmSearchResult.getDeinfInfo().getReason();
             if (deinfReason != null && !deinfReason.isEmpty()){
-                sb.append(String.format(" %s", deinfReason));
+                sb.append(" ");
+                reasonStart = sb.length();
+                sb.append(deinfReason);
             }
 
-            HeadingStyle.apply(context, sb, headingStart, pitchStart, pitchEnd);
+            HeadingStyle.apply(context, sb, headingStart, pitchStart, pitchEnd, reasonStart);
 
             sb.append("\n");
             sb.append(getMeaning(jmSearchResult.getEntry()));

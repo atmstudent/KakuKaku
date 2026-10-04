@@ -303,13 +303,16 @@ class InstantInfoWindow(context: Context,
                 pitchEnd = sb.length
             }
 
+            var reasonStart = -1
             val deinfReason = deinfInfo!!.reason
             if (deinfReason != null && !deinfReason.isEmpty())
             {
-                sb.append(String.format(" %s", deinfReason))
+                sb.append(" ")
+                reasonStart = sb.length
+                sb.append(deinfReason)
             }
 
-            HeadingStyle.apply(context, sb, headingStart, pitchStart, pitchEnd)
+            HeadingStyle.apply(context, sb, headingStart, pitchStart, pitchEnd, reasonStart)
 
             sb.append("\n")
             sb.append(getMeaning(entry))
