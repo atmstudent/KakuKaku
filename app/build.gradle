@@ -47,9 +47,15 @@ android {
 
     testOptions {
         unitTests.returnDefaultValues = true
-        // GenerateDictionary parses the whole of JMdict
+        // GenerateDictionary parses the whole of JMdict and needs about 3 GB, so it only runs on request
+        // (./gradlew testDebugUnitTest -PgenerateDictionary --tests app.mojiscope.GenerateDictionary)
         unitTests.all {
-            maxHeapSize = '3g'
+            if (project.hasProperty('generateDictionary')) {
+                maxHeapSize = '3g'
+            } else {
+                maxHeapSize = '512m'
+                exclude '**/GenerateDictionary*'
+            }
         }
     }
 }

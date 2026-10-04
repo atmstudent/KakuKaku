@@ -43,13 +43,13 @@ Mojiscope itself works offline and never downloads anything: get the `.zip` with
 The bundled database is generated from the official JMdict and KANJIDIC2 files. To update it:
 
 1. Download and unpack `JMdict_e.gz` (<http://ftp.edrdg.org/pub/Nihongo/JMdict_e.gz>) and `kanjidic2.xml.gz` (<http://www.edrdg.org/kanjidic/kanjidic2.xml.gz>).
-2. Run the generator, which takes about ten seconds:
+2. Run the generator, which takes about ten seconds and about 3 GB of memory (`-PgenerateDictionary` is what switches it on; the normal test run skips it):
 
    ```bash
    MOJI_JMDICT_XML=/path/to/JMdict_e \
    MOJI_KANJIDIC_XML=/path/to/kanjidic2.xml \
    MOJI_DB_OUT=/path/to/DB_MojiDict-YYYY-MM-DD.db \
-   ./gradlew testDebugUnitTest --tests app.mojiscope.GenerateDictionary
+   ./gradlew testDebugUnitTest -PgenerateDictionary --tests app.mojiscope.GenerateDictionary
    ```
 
 3. Put the result in `app/src/main/assets/`, replacing the old file, and set `JMDICT_DATABASE_NAME` in `Constants.kt` to the new file name. The name is the database's version: a changed name makes the app copy the new database and delete the old one.
