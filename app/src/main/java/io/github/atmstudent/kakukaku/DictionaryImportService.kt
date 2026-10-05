@@ -43,16 +43,17 @@ class DictionaryImportService : Service()
 
         val totalBytes = fileSize(uri)
         val pitch = intent.getBooleanExtra(EXTRA_PITCH, false)
+        val frequency = intent.getBooleanExtra(EXTRA_FREQUENCY, false)
 
         ServiceCompat.startForeground(this, NOTIFICATION_ID, buildNotification(0, 0, totalBytes > 0, false), ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
         DictionaryImport.publish(DictionaryImport.Progress(0, 0, false, totalBytes > 0))
 
-        thread(name = "DictionaryImport") { runImport(uri, totalBytes, pitch) }
+        thread(name = "DictionaryImport") { runImport(uri, totalBytes, pitch, frequency) }
 
         return START_NOT_STICKY
     }
 
-    private fun runImport(uri: Uri, totalBytes: Long, pitch: Boolean)
+    private fun runImport(uri: Uri, totalBytes: Long, pitch: Boolean, frequency: Boolean)
     {
         val numbers = NumberFormat.getIntegerInstance()
         var lastUpdate = 0L
@@ -76,7 +77,12 @@ class DictionaryImportService : Service()
                 updateNotification(100, 0, totalBytes > 0, true)
             }
 
-            if (pitch)
+            if (frequency)
+            {
+                val result = UserDictionaryStore.get(this).importFrequency(open, onProgress, onFinishing)
+                message = getString(R.string.frequency_import_done, result.title, numbers.format(result.entries))
+            }
+            else if (pitch)
             {
                 val result = UserDictionaryStore.get(this).importPitch(open, onProgress, onFinishing)
                 message = getString(R.string.pitch_import_done, result.title, numbers.format(result.entries))
@@ -183,6 +189,9 @@ class DictionaryImportService : Service()
 
         /** Boolean extra: the file is a pitch accent dictionary, not a word dictionary */
         const val EXTRA_PITCH = "pitch"
+
+        /** Boolean extra: the file is a frequency dictionary */
+        const val EXTRA_FREQUENCY = "frequency"
 
         private const val NOTIFICATION_ID = 2
         private const val CHANNEL_ID = "dictionary_import_channel"

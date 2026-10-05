@@ -13,6 +13,7 @@ Yes, it's vibecoded 😞
 - Material 3 design with light and dark mode and dynamic colour.
 - Dictionary import in Yomitan format.
 - Optional pitch accent from a dictionary you import yourself.
+- Optional word frequency from a dictionary you import yourself (JPDB or BCCWJ, for example): the more common word is shown first.
 - Words are found by their kana reading (とても finds 迚も).
 - JMdict and KANJIDIC2 were updated.
 

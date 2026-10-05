@@ -191,4 +191,38 @@ class YomitanParserTest
         assertEquals(ImportedPitch("猫", "ねこ", "1,0"), rows[0])
         assertEquals(ImportedPitch("橋", "はし", "0,1,2"), rows[1])
     }
+
+    @Test
+    fun parsesFrequencyBanks()
+    {
+        val rows = ArrayList<ImportedFrequency>()
+        val (meta, count) = YomitanParser.parseFrequency(zip(mapOf(
+                "index.json" to """{"title":"Freq","format":3,"frequencyMode":"rank-based"}""",
+                "term_meta_bank_1.json" to """[
+                    ["の","freq",{"value":1,"displayValue":"1㋕"}],
+                    ["読む","freq",{"reading":"よむ","frequency":{"value":312,"displayValue":"312"}}],
+                    ["行く","freq",{"reading":"イク","frequency":48}],
+                    ["犬","freq",7],
+                    ["猫","pitch",{"reading":"ねこ","pitches":[{"position":1}]}],
+                    ["鳥","freq",{"reading":"とり","frequency":{"displayValue":"x"}}]
+                ]"""))) { rows.addAll(it) }
+
+        assertEquals("rank-based", meta.frequencyMode)
+        assertEquals(4, count)
+        assertEquals(ImportedFrequency("の", "", 1.0), rows[0])
+        assertEquals(ImportedFrequency("読む", "よむ", 312.0), rows[1])
+        assertEquals(ImportedFrequency("行く", "いく", 48.0), rows[2])
+        assertEquals(ImportedFrequency("犬", "", 7.0), rows[3])
+    }
+
+    @Test
+    fun occurrenceCountsBecomeRanks()
+    {
+        val rows = ArrayList<ImportedFrequency>()
+        YomitanParser.parseFrequency(zip(mapOf(
+                "index.json" to """{"title":"Freq","format":3,"frequencyMode":"occurrence-based"}""",
+                "term_meta_bank_1.json" to """[["犬","freq",900],["猫","freq",100]]"""))) { rows.addAll(it) }
+
+        assertTrue(rows[0].rank < rows[1].rank)
+    }
 }

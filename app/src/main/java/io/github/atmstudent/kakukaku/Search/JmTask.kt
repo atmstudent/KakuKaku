@@ -6,6 +6,7 @@ import android.database.sqlite.SQLiteDatabase
 import io.github.atmstudent.kakukaku.Dictionary.DictionarySelection
 import io.github.atmstudent.kakukaku.Dictionary.PitchAccent
 import io.github.atmstudent.kakukaku.Dictionary.UserDictionaryStore
+import io.github.atmstudent.kakukaku.Dictionary.WordFrequency
 import io.github.atmstudent.kakukaku.DB_KANJIDICT_NAME
 import io.github.atmstudent.kakukaku.toHiragana
 import io.github.atmstudent.kakukaku.Database.JmDictDatabase.JmDatabaseHelper
@@ -85,21 +86,31 @@ constructor(private val mSearchInfo: SearchInfo, private val mSearchJmTaskDone: 
         }
         val queryTime = System.currentTimeMillis() - startDictTime
 
-        val matchedEntries = rankResults(getMatchedEntries(words, deinflections, entries))
-        loadMeanings(db, matchedEntries)
+        val matchedEntries = getMatchedEntries(words, deinflections, entries)
+
+        // Frequency comes from the frequency dictionary the user imported, whichever word dictionary is selected
+        val frequencySource = UserDictionaryStore.get(mContext).frequencySource()
+        if (frequencySource != null)
+        {
+            val ranks = WordFrequency.get(mContext).ranks(matchedEntries.map { it.entry }.filter { it.dictionary != DB_KANJIDICT_NAME })
+            for (result in matchedEntries) result.frequency = ranks[result.entry]
+        }
+
+        val rankedEntries = rankResults(matchedEntries)
+        loadMeanings(db, rankedEntries)
 
         // Pitch accent comes from the pitch accent dictionary the user imported, whichever word dictionary is selected
         if (PitchAccent.isEnabled(mContext))
         {
             val pitchAccent = PitchAccent.get(mContext)
-            for (result in matchedEntries)
+            for (result in rankedEntries)
             {
                 if (result.entry.dictionary != DB_KANJIDICT_NAME) result.pitch = pitchAccent.lookup(result.entry.kanji, result.entry.readings)
             }
         }
         Log.d(TAG, "Dict lookup time: ${System.currentTimeMillis() - startDictTime} (query $queryTime, ${candidates.size} candidates, ${entries.size} entries)")
 
-        return matchedEntries
+        return rankedEntries
     }
 
     /**
@@ -265,6 +276,7 @@ constructor(private val mSearchInfo: SearchInfo, private val mSearchJmTaskDone: 
         return results.sortedWith(compareBy(
                 { getDictPriority(it) },
                 { 0 - it.word.length }, // how much of the text the entry matched, conjugation included
+                { it.frequency ?: Double.MAX_VALUE }, // the imported frequency dictionary, if any; words it lacks come last
                 { getEntryPriority(it) },
                 { getPriority(it) }))
     }

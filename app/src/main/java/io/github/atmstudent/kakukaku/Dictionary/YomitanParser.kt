@@ -10,7 +10,8 @@ import java.io.InputStream
 import java.io.InputStreamReader
 import java.util.zip.ZipInputStream
 
-data class DictionaryMeta(val title: String, val revision: String, val format: Int)
+/** [frequencyMode] is "rank-based" (1 is the most common word) or "occurrence-based" (a bigger number is more common); empty if the dictionary does not say */
+data class DictionaryMeta(val title: String, val revision: String, val format: Int, val frequencyMode: String = "")
 
 /**
  * One row of a term bank. [senses] holds one text per definition and [tags] the definition tags
@@ -27,6 +28,12 @@ data class ImportedTerm(
 
 /** One pitch accent of a word: the downstep positions ("0" is flat, "1" drops after the first mora) of a reading, comma separated */
 data class ImportedPitch(val term: String, val reading: String, val positions: String)
+
+/**
+ * The frequency of a word's reading, as a rank where a smaller number is a more common word. [reading] is
+ * hiragana, or empty if the dictionary gives none (then the entry is the word itself, which is how kana-only words come).
+ */
+data class ImportedFrequency(val term: String, val reading: String, val rank: Double)
 
 class DictionaryFormatException(message: String) : Exception(message)
 
@@ -62,7 +69,7 @@ private class CountingInputStream(private val source: InputStream, private val o
 
 /**
  * Reads dictionaries in the Yomitan/Yomichan zip format: an index.json plus term_bank_N.json and
- * kanji_bank_N.json files. Frequency and other meta banks are ignored; pitch accent banks are read by [parsePitch].
+ * kanji_bank_N.json files. Other meta banks are ignored; pitch accent banks are read by [parsePitch] and frequency banks by [parseFrequency].
  */
 object YomitanParser
 {
@@ -105,7 +112,7 @@ object YomitanParser
 
         if (count == 0)
         {
-            throw DictionaryFormatException("This dictionary has no term or kanji entries (frequency dictionaries are not supported, and pitch accent has its own import).")
+            throw DictionaryFormatException("This dictionary has no term or kanji entries (pitch accent and frequency dictionaries have their own imports).")
         }
 
         return Pair(meta, count)
@@ -142,6 +149,90 @@ object YomitanParser
         }
 
         return Pair(meta, count)
+    }
+
+    /**
+     * Reads the frequency entries of a Yomitan zip (term_meta_bank_N.json rows [term, "freq", data]). The data is
+     * a number, {value, displayValue}, or {reading, frequency: number or {value, displayValue}}. Frequency banks
+     * are big (a million rows, 80 MB of text), so they are read as a stream and handed on in batches.
+     * Occurrence-based counts are stored negated, so a smaller number is always a more common word.
+     */
+    fun parseFrequency(openStream: () -> InputStream, onBytesRead: (Long) -> Unit = {}, onRows: (List<ImportedFrequency>) -> Unit): Pair<DictionaryMeta, Int>
+    {
+        val meta = readIndex(openStream)
+        val sign = if (meta.frequencyMode == "occurrence-based") -1.0 else 1.0
+
+        var count = 0
+        openStream().use { raw ->
+            val zip = ZipInputStream(CountingInputStream(raw, onBytesRead))
+            while (true)
+            {
+                val entry = zip.nextEntry ?: break
+                if (entry.isDirectory || !META_BANK.matches(entry.name)) continue
+
+                // Not closed on purpose: that would close the whole zip stream
+                val reader = JsonReader(InputStreamReader(zip, Charsets.UTF_8))
+                if (reader.peek() != com.google.gson.stream.JsonToken.BEGIN_ARRAY) continue
+
+                val batch = ArrayList<ImportedFrequency>()
+                reader.beginArray()
+                while (reader.hasNext())
+                {
+                    val item = JsonParser.parseReader(reader)
+                    parseFrequencyRow(item, sign)?.let { batch.add(it) }
+
+                    if (batch.size >= FREQUENCY_BATCH)
+                    {
+                        count += batch.size
+                        onRows(ArrayList(batch))
+                        batch.clear()
+                    }
+                }
+                reader.endArray()
+
+                if (batch.isNotEmpty())
+                {
+                    count += batch.size
+                    onRows(batch)
+                }
+            }
+        }
+
+        if (count == 0)
+        {
+            throw DictionaryFormatException("This dictionary has no frequency entries (term_meta_bank files with \"freq\" rows).")
+        }
+
+        return Pair(meta, count)
+    }
+
+    private const val FREQUENCY_BATCH = 20000
+
+    private fun parseFrequencyRow(item: JsonElement, sign: Double): ImportedFrequency?
+    {
+        if (!item.isJsonArray) return null
+        val a = item.asJsonArray
+        if (a.size() < 3 || a[1].text() != "freq") return null
+
+        val term = a[0].text()
+        if (term.isEmpty()) return null
+
+        var data = a[2]
+        var reading = ""
+        if (data.isJsonObject && data.asJsonObject.has("frequency"))
+        {
+            reading = data.asJsonObject.string("reading")
+            data = data.asJsonObject.get("frequency")
+        }
+
+        val value = when
+        {
+            data.isJsonPrimitive && data.asJsonPrimitive.isNumber -> data.asDouble
+            data.isJsonObject && data.asJsonObject.get("value")?.isJsonPrimitive == true -> data.asJsonObject.get("value").asDouble
+            else -> return null
+        }
+
+        return ImportedFrequency(term, toHiragana(reading), value * sign)
     }
 
     private fun parsePitchBank(bank: JsonElement): List<ImportedPitch>
@@ -206,7 +297,7 @@ object YomitanParser
                 val format = obj.get("format")?.takeIf { it.isJsonPrimitive }?.asInt
                         ?: obj.get("version")?.takeIf { it.isJsonPrimitive }?.asInt
                         ?: 1
-                return DictionaryMeta(title, obj.string("revision"), format)
+                return DictionaryMeta(title, obj.string("revision"), format, obj.string("frequencyMode"))
             }
         }
 

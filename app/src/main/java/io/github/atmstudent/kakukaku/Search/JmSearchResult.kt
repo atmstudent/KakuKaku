@@ -10,4 +10,7 @@ data class JmSearchResult(
 ){
     /** Pitch accent of the entry, such as "[1]"; empty if unknown or switched off */
     var pitch: String = ""
+
+    /** Rank of the word in the imported frequency dictionary (smaller is more common); null if unknown */
+    var frequency: Double? = null
 }

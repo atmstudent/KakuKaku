@@ -32,11 +32,15 @@ class DictionariesActivity : AppCompatActivity()
     private val mExecutor = Executors.newSingleThreadExecutor()
 
     private val mPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) importDictionary(uri, false)
+        if (uri != null) importDictionary(uri, false, false)
     }
 
     private val mPitchPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) importDictionary(uri, true)
+        if (uri != null) importDictionary(uri, true, false)
+    }
+
+    private val mFrequencyPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) importDictionary(uri, false, true)
     }
 
     override fun onCreate(savedInstanceState: Bundle?)
@@ -56,6 +60,8 @@ class DictionariesActivity : AppCompatActivity()
         mBinding.importButton.setOnClickListener { mPicker.launch(arrayOf("*/*")) }
         mBinding.importPitchButton.setOnClickListener { mPitchPicker.launch(arrayOf("*/*")) }
         mBinding.deletePitchButton.setOnClickListener { deletePitch() }
+        mBinding.importFrequencyButton.setOnClickListener { mFrequencyPicker.launch(arrayOf("*/*")) }
+        mBinding.deleteFrequencyButton.setOnClickListener { deleteFrequency() }
         mBinding.getJmdictButton.setOnClickListener { openLink(JMDICT_RELEASES_URL) }
         mBinding.moreDictionariesButton.setOnClickListener { openLink(YOMITAN_DICTIONARIES_URL) }
 
@@ -84,12 +90,14 @@ class DictionariesActivity : AppCompatActivity()
                 val selected = DictionarySelection.get(this)
                 val dictionaries = UserDictionaryStore.get(this).list()
                 val pitch = UserDictionaryStore.get(this).pitchSource()
+                val frequency = UserDictionaryStore.get(this).frequencySource()
 
                 runOnUiThread {
                     if (!isDestroyed)
                     {
                         showDictionaries(selected, dictionaries)
                         showPitch(pitch)
+                        showFrequency(frequency)
                     }
                 }
             }
@@ -107,6 +115,23 @@ class DictionariesActivity : AppCompatActivity()
         else
             getString(R.string.pitch_imported, pitch.title, NumberFormat.getIntegerInstance().format(pitch.entries))
         mBinding.deletePitchButton.visibility = if (pitch == null) View.GONE else View.VISIBLE
+    }
+
+    private fun showFrequency(frequency: UserDictionary?)
+    {
+        mBinding.frequencyStatus.text = if (frequency == null)
+            getString(R.string.frequency_none)
+        else
+            getString(R.string.frequency_imported, frequency.title, NumberFormat.getIntegerInstance().format(frequency.entries))
+        mBinding.deleteFrequencyButton.visibility = if (frequency == null) View.GONE else View.VISIBLE
+    }
+
+    private fun deleteFrequency()
+    {
+        mExecutor.execute {
+            UserDictionaryStore.get(this).deleteFrequency()
+            runOnUiThread { refresh() }
+        }
     }
 
     private fun deletePitch()
@@ -174,7 +199,7 @@ class DictionariesActivity : AppCompatActivity()
     /**
      * The import itself runs in a foreground service, so it carries on if you leave this screen or the app
      */
-    private fun importDictionary(uri: Uri, pitch: Boolean)
+    private fun importDictionary(uri: Uri, pitch: Boolean, frequency: Boolean)
     {
         if (DictionaryImport.isRunning) return
 
@@ -191,6 +216,7 @@ class DictionariesActivity : AppCompatActivity()
         val intent = Intent(this, DictionaryImportService::class.java)
                 .setData(uri)
                 .putExtra(DictionaryImportService.EXTRA_PITCH, pitch)
+                .putExtra(DictionaryImportService.EXTRA_FREQUENCY, frequency)
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         ContextCompat.startForegroundService(this, intent)
 
@@ -208,6 +234,7 @@ class DictionariesActivity : AppCompatActivity()
 
         mBinding.importButton.isEnabled = !running
         mBinding.importPitchButton.isEnabled = !running
+        mBinding.importFrequencyButton.isEnabled = !running
         mBinding.importProgress.visibility = if (running) View.VISIBLE else View.GONE
         mBinding.importStatus.visibility = if (running) View.VISIBLE else View.GONE
 

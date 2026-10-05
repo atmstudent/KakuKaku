@@ -21,7 +21,7 @@ data class ImportResult(val dictionary: UserDictionary, val replacedIds: List<Lo
  * Dictionaries imported by the user (Yomitan format). Kept in their own database so the bundled
  * dictionary is never touched.
  */
-class UserDictionaryStore private constructor(context: Context) : SQLiteOpenHelper(context.applicationContext, "user_dictionaries.db", null, 3)
+class UserDictionaryStore private constructor(context: Context) : SQLiteOpenHelper(context.applicationContext, "user_dictionaries.db", null, 4)
 {
     init
     {
@@ -37,12 +37,14 @@ class UserDictionaryStore private constructor(context: Context) : SQLiteOpenHelp
         db.execSQL("CREATE INDEX terms_lookup ON terms (dict_id, term)")
         db.execSQL("CREATE INDEX terms_reading ON terms (dict_id, reading)")
         createPitchTable(db)
+        createFrequencyTable(db)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int)
     {
         if (oldVersion < 2) createPitchTable(db)
         if (oldVersion < 3) db.execSQL("CREATE INDEX IF NOT EXISTS terms_reading ON terms (dict_id, reading)")
+        if (oldVersion < 4) createFrequencyTable(db)
     }
 
     private fun createPitchTable(db: SQLiteDatabase)
@@ -50,6 +52,97 @@ class UserDictionaryStore private constructor(context: Context) : SQLiteOpenHelp
         db.execSQL("CREATE TABLE pitch (term TEXT NOT NULL, reading TEXT NOT NULL, positions TEXT NOT NULL)")
         db.execSQL("CREATE TABLE pitch_source (title TEXT NOT NULL, entries INTEGER NOT NULL)")
         db.execSQL("CREATE INDEX pitch_lookup ON pitch (term)")
+    }
+
+    private fun createFrequencyTable(db: SQLiteDatabase)
+    {
+        db.execSQL("CREATE TABLE freq (term TEXT NOT NULL, reading TEXT NOT NULL, rank REAL NOT NULL)")
+        db.execSQL("CREATE TABLE freq_source (title TEXT NOT NULL, entries INTEGER NOT NULL)")
+        db.execSQL("CREATE INDEX freq_lookup ON freq (term)")
+    }
+
+    /** The imported frequency dictionary, or null if there is none */
+    fun frequencySource(): UserDictionary?
+    {
+        readableDatabase.rawQuery("SELECT title, entries FROM freq_source", null).use { c ->
+            return if (c.moveToFirst()) UserDictionary(FREQUENCY_ID, c.getString(0), "", c.getInt(1)) else null
+        }
+    }
+
+    fun deleteFrequency()
+    {
+        val db = writableDatabase
+        db.beginTransaction()
+        try
+        {
+            db.delete("freq", null, null)
+            db.delete("freq_source", null, null)
+            db.setTransactionSuccessful()
+        }
+        finally
+        {
+            db.endTransaction()
+        }
+    }
+
+    /** The ranks stored for each of [terms], as pairs of hiragana reading (empty if none was given) and rank */
+    fun frequenciesFor(terms: Collection<String>): Map<String, List<Pair<String, Double>>>
+    {
+        val result = HashMap<String, MutableList<Pair<String, Double>>>()
+        for (chunk in terms.distinct().chunked(JmTask.SQL_CHUNK))
+        {
+            readableDatabase.rawQuery("SELECT term, reading, rank FROM freq WHERE term IN (${JmTask.placeholders(chunk.size)})", chunk.toTypedArray()).use { c ->
+                while (c.moveToNext()) result.getOrPut(c.getString(0)) { ArrayList() }.add(Pair(c.getString(1), c.getDouble(2)))
+            }
+        }
+        return result
+    }
+
+    /**
+     * Imports a Yomitan frequency zip, replacing the frequency dictionary that was there. One transaction,
+     * so a failed import leaves the old one in place.
+     */
+    fun importFrequency(openStream: () -> InputStream, onProgress: (entries: Int, bytesRead: Long) -> Unit, onFinishing: () -> Unit = {}): UserDictionary
+    {
+        val db = writableDatabase
+        db.beginTransaction()
+        try
+        {
+            db.execSQL("DROP INDEX IF EXISTS freq_lookup")
+            db.delete("freq", null, null)
+            db.delete("freq_source", null, null)
+
+            val statement = db.compileStatement("INSERT INTO freq (term, reading, rank) VALUES (?, ?, ?)")
+            var imported = 0
+            var bytesRead = 0L
+
+            val (meta, count) = YomitanParser.parseFrequency(openStream, { bytesRead = it }) { rows ->
+                for (row in rows)
+                {
+                    statement.clearBindings()
+                    statement.bindString(1, row.term)
+                    statement.bindString(2, row.reading)
+                    statement.bindDouble(3, row.rank)
+                    statement.executeInsert()
+                }
+                imported += rows.size
+                onProgress(imported, bytesRead)
+            }
+
+            val source = ContentValues()
+            source.put("title", meta.title)
+            source.put("entries", count)
+            db.insertOrThrow("freq_source", null, source)
+
+            onFinishing()
+            db.execSQL("CREATE INDEX freq_lookup ON freq (term)")
+            db.setTransactionSuccessful()
+            return UserDictionary(FREQUENCY_ID, meta.title, "", count)
+        }
+        finally
+        {
+            db.endTransaction()
+        }
     }
 
     /** The imported pitch accent dictionary, or null if there is none */
@@ -331,6 +424,7 @@ class UserDictionaryStore private constructor(context: Context) : SQLiteOpenHelp
     {
         private const val TAG = "UserDictionaryStore"
         const val PITCH_ID = -2L
+        const val FREQUENCY_ID = -3L
 
         @Volatile
         private var instance: UserDictionaryStore? = null
