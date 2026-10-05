@@ -36,7 +36,7 @@
                 android:id="@+id/kakukaku_logo"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="画2"
+                android:text="画²"
                 android:textAppearance="?attr/textAppearanceDisplayLarge"
                 android:textColor="?attr/colorOnSurface"
                 android:textSize="80sp" />

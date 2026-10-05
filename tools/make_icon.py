@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Draws the launcher icons: the original glyph 画 (tools/icon_kanji.png) followed by a bold 2.
+"""Draws the launcher icons: the original glyph 画 (tools/icon_kanji.png) followed by a bold superscript 2 (画²).
 
     tools/make_icon.py
 
@@ -15,17 +15,17 @@ KANJI = Image.open(os.path.join(os.path.dirname(__file__), 'icon_kanji.png')).co
 FOREGROUND = {'mdpi': 108, 'hdpi': 162, 'xhdpi': 216, 'xxhdpi': 324, 'xxxhdpi': 432}
 LEGACY = {'mdpi': 48, 'hdpi': 72, 'xhdpi': 96, 'xxhdpi': 144, 'xxxhdpi': 192}
 
-DIGIT_HEIGHT = 1.0   # the 2 is as tall as 画 (of the kanji's height)
-GAP = 0.07           # of the kanji's width
+DIGIT_HEIGHT = 0.58  # the superscript 2 is this fraction of 画's height
+GAP = 0.04           # of the kanji's width
 
-# Width of 画2 as a fraction of the icon. The adaptive icon shows only the middle two thirds of its layer, and the
+# Width of 画² as a fraction of the icon. The adaptive icon shows only the middle two thirds of its layer, and the
 # legacy icon is a rounded square of about 80% of the file: both fractions leave a generous margin around the logo
 FOREGROUND_ART_WIDTH = 0.46
 LEGACY_ART_WIDTH = 0.52
 
 
 def compose():
-    """画2 on a transparent canvas, tightly cropped, with 画 at its original size"""
+    """画² on a transparent canvas, tightly cropped, with 画 at its original size"""
     kw = KANJI.width
     kanji = KANJI
 
@@ -44,7 +44,7 @@ def compose():
     canvas.alpha_composite(kanji, (0, 0))
     digit = Image.new('RGBA', (dw, dh), (0, 0, 0, 0))
     ImageDraw.Draw(digit).text((-box[0], -box[1]), '2', font=font, fill=(0, 0, 0, 255))
-    canvas.alpha_composite(digit, (kw + gap, kw - dh))  # sits on the same baseline as 画
+    canvas.alpha_composite(digit, (kw + gap, 0))  # top aligned with 画: a superscript
     return canvas
 
 
