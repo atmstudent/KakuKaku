@@ -1,16 +1,52 @@
-Kaku2 (formerly Mojiscope, originally Kaku): 文字 (もじ) - character, letter
+# KakuKaku 画²
 
-Fork of [Kaku](https://github.com/0xbad1d3a5/Kaku), modernized for current Android (ML Kit OCR).
+KakuKaku is a Japanese OCR dictionary for Android. It floats over any app, reads the Japanese text in a box you place on the screen (ML Kit), and shows dictionary entries for the words in it: manga, games, web pages, anything you can see. Select text in any app and share it to KakuKaku to look it up without the capture box.
 
-Kaku2 is a fast, powerful Japanese dictionary that stays on top of all your apps. It uses optical character recognition (OCR) technology to recognize kanji on the device screen for you (rather than the slowww tedious process of looking up individual characters manually), making it perfect for Japanese learners who want to study by reading raw manga, play untranslated games, and so on without the hassle of switching apps.
+KakuKaku is a **continuation of [Kaku](https://github.com/0xbad1d3a5/Kaku)** by 0xbad1d3a5, published as a fork of it under the same BSD 3-Clause licence. It is not endorsed by Kaku's author. It used to be called Mojiscope and Kaku2 on the way here.
+
+## What is new compared with Kaku
+
+- Works on current Android (minSdk 26, targetSdk 36): MediaProjection consent, edge-to-edge, rotation, camera notch.
+- ML Kit Japanese text recognition instead of Tesseract, including vertical text.
+- Material 3 design with light and dark mode and dynamic colour.
+- Dictionary import in Yomitan format (tested with JMdict; others such as Jitendex, JMnedict, KANJIDIC and Wiktionary should work), with background import and progress.
+- Optional pitch accent from a dictionary you import yourself.
+- Words are also found by their reading (とても finds 迚も).
+- Popups from Share and "process text" without flashing a white window, and a landscape layout for the popup.
+- JMdict and KANJIDIC2 bundled from October 2026.
+- Much smaller download: the unused Kuromoji dictionary and the extra CPU libraries are gone (the release APK is arm64 only).
+- No ads, rating prompts or store links. Instant mode and the image filter are off by default.
+
+## Install
+
+KakuKaku is not on any app store. Download `KakuKaku-<version>.apk` from the [Releases](../../releases) page and open it (Android asks you to allow installs from your browser or file manager). It needs Android 8.0 or newer on an arm64 phone or tablet. KakuKaku has its own app ID, so it installs next to Kaku, Mojiscope or Kaku2 and does not take over their settings or imported dictionaries.
+
+Press **Start**, allow drawing over other apps and screen capture, drag the box over Japanese text and double-tap it. Tap a character in the popup to look up from there.
+
+## Privacy
+
+KakuKaku works offline. It asks for no network permission, collects nothing and sends nothing anywhere. The screen capture is only analysed on the device and only when you double-tap the box. It needs "display over other apps" to show the box and popup, and screen capture to read the text under the box.
+
+## Building
+
+```bash
+export JAVA_HOME=/path/to/android-studio/jbr   # the system Java is not enough
+./gradlew assembleDebug lintDebug testDebugUnitTest
+```
+
+A release build is signed with the key from `keystore.properties` (`storeFile`, `storePassword`, `keyAlias`, `keyPassword`; not in the repository). Without that file `./gradlew assembleRelease` produces an unsigned APK. The bundled dictionary is a gitignored asset that was added with `git add -f`, see below.
+
+## Licence and credits
+
+BSD 3-Clause, see [LICENSE](LICENSE). © 2016 0xbad1d3a5, © 2026 atmstudent. The deinflection rules (`deinflect.dat`) come from Rikaichan by Jonathan Zarate. Text recognition is Google ML Kit. The same notices are in the app under *About and licences*.
 
 ## Dictionaries
 
-Kaku2 ships with JMdict and KANJIDIC data from **October 2026**. You can import newer or additional dictionaries from the three-dot menu on the home screen, under **Dictionaries**. There you can also choose which dictionary is used for word lookups. Kanji information always comes from the built-in dictionary.
+KakuKaku ships with JMdict and KANJIDIC data from **October 2026**. You can import newer or additional dictionaries from the three-dot menu on the home screen, under **Dictionaries**. There you can also choose which dictionary is used for word lookups. Kanji information always comes from the built-in dictionary.
 
 ### Format
 
-Kaku2 reads dictionaries in the **Yomitan (formerly Yomichan) format**: a single `.zip` file, which you import as it is (do not unpack it). The zip must contain, at its top level:
+KakuKaku reads dictionaries in the **Yomitan (formerly Yomichan) format**: a single `.zip` file, which you import as it is (do not unpack it). The zip must contain, at its top level:
 
 | File | Required | Used for |
 |------|----------|----------|
@@ -36,7 +72,7 @@ The dictionaries listed on the [Yomitan wiki](https://yomitan.wiki/dictionaries/
 - **Wiktionary** in many languages: <https://yomidevs.github.io/wiktionary-to-yomitan/download/>.
 - **CC-CEDICT** (Chinese to English): <https://github.com/MarvNC/cc-cedict-yomitan>.
 
-Kaku2 itself works offline and never downloads anything: get the `.zip` with a browser, then import it from the Dictionaries screen.
+KakuKaku itself works offline and never downloads anything: get the `.zip` with a browser, then import it from the Dictionaries screen.
 
 ### Rebuilding the bundled dictionary
 
@@ -46,20 +82,16 @@ The bundled database is generated from the official JMdict and KANJIDIC2 files. 
 2. Run the generator, which takes about ten seconds and about 3 GB of memory (`-PgenerateDictionary` is what switches it on; the normal test run skips it):
 
    ```bash
-   MOJI_JMDICT_XML=/path/to/JMdict_e \
-   MOJI_KANJIDIC_XML=/path/to/kanjidic2.xml \
-   MOJI_DB_OUT=/path/to/DB_MojiDict-YYYY-MM-DD.db \
-   ./gradlew testDebugUnitTest -PgenerateDictionary --tests app.mojiscope.GenerateDictionary
+   KAKUKAKU_JMDICT_XML=/path/to/JMdict_e \
+   KAKUKAKU_KANJIDIC_XML=/path/to/kanjidic2.xml \
+   KAKUKAKU_DB_OUT=/path/to/DB_KakuKakuDict-YYYY-MM-DD.db \
+   ./gradlew testDebugUnitTest -PgenerateDictionary --tests io.github.atmstudent.kakukaku.GenerateDictionary
    ```
 
 3. Put the result in `app/src/main/assets/`, replacing the old file, and set `JMDICT_DATABASE_NAME` in `Constants.kt` to the new file name. The name is the database's version: a changed name makes the app copy the new database and delete the old one.
 
-The bundled pitch accent database is built from a Yomitan pitch dictionary (currently アクセント辞典 v2):
+## Pitch accent
 
-```bash
-tools/build_pitch_db.py <dictionary.zip> app/src/main/assets/DB_MojiPitch-YYYY-MM-DD.db
-```
-
-Set `PITCH_DATABASE_NAME` in `Constants.kt` to the new file name and add the file with `git add -f`; as with the main database, the name is its version.
+KakuKaku does not include pitch accent data: the common pitch accent dictionaries are built from commercial dictionaries that cannot be redistributed. On the Dictionaries screen you can import a pitch accent dictionary in Yomitan format (a `.zip` with `term_meta_bank_N.json` files; see the [Yomitan wiki](https://yomitan.wiki/dictionaries/)). The accent is then shown after the reading, like `猫 (ねこ) [1]`. Check the licence of the dictionary you import.
 
 JMdict and KANJIDIC are the property of the Electronic Dictionary Research and Development Group and are used under their [licence](https://www.edrdg.org/edrdg/licence.html).

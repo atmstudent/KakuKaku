@@ -11,13 +11,12 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
 
-    def versionPrefix = "2.0"
     defaultConfig {
         applicationId "io.github.atmstudent.kakukaku"
         minSdk 26
         targetSdk 36
-        versionCode 79
-        versionName "$versionPrefix.$versionCode"
+        versionCode 1
+        versionName "1.0.0"
     }
 
     buildFeatures {
@@ -25,10 +24,26 @@ android {
         buildConfig true
     }
 
+    // The release key is not in the repository: keystore.properties (storeFile, storePassword, keyAlias, keyPassword)
+    // lives next to this project, ignored by git. Without it the release build is simply not signed.
+    def keystoreFile = rootProject.file('keystore.properties')
+    signingConfigs {
+        release {
+            if (keystoreFile.exists())
+            {
+                def keystoreProps = new Properties()
+                keystoreFile.withInputStream { keystoreProps.load(it) }
+                storeFile file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // Personal, sideloaded app: the debug key signs release builds too, so they install (and update over debug builds)
-            signingConfig signingConfigs.debug
+            if (keystoreFile.exists()) signingConfig signingConfigs.release
             // ML Kit ships its OCR library per CPU type (about 11 MB each). Phones and e-ink tablets are arm64
             ndk { abiFilters 'arm64-v8a' }
             debuggable false

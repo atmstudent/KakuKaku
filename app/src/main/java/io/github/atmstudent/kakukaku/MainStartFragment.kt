@@ -9,12 +9,15 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ScrollView
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import androidx.core.text.HtmlCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 class MainStartFragment : Fragment()
 {
@@ -24,6 +27,22 @@ class MainStartFragment : Fragment()
     private lateinit var supportText : TextView
     private lateinit var startButton : Button
 
+
+    private fun showAbout()
+    {
+        val text = TextView(mainActivity).apply {
+            setText(HtmlCompat.fromHtml(getString(R.string.about_text), HtmlCompat.FROM_HTML_MODE_COMPACT))
+            setPadding(64, 24, 64, 0)
+            setTextIsSelectable(true)
+        }
+
+        MaterialAlertDialogBuilder(mainActivity)
+                .setTitle(getString(R.string.app_name))
+                .setMessage(getString(R.string.about_version, BuildConfig.VERSION_NAME))
+                .setView(ScrollView(mainActivity).apply { addView(text) })
+                .setPositiveButton(R.string.about_close, null)
+                .show()
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
                               savedInstanceState: Bundle?): View?
@@ -40,6 +59,7 @@ class MainStartFragment : Fragment()
             when (it.itemId)
             {
                 R.id.menu_dictionaries -> startActivity(Intent(mainActivity, DictionariesActivity::class.java))
+                R.id.menu_about -> showAbout()
             }
             true
         }

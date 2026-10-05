@@ -2,6 +2,25 @@
     <string name="app_name">KakuKaku</string>
     <string name="support_text">KakuKaku is running. Drag the box over Japanese text, then double-tap it.</string>
     <string name="menu_dictionaries">Dictionaries</string>
+    <string name="menu_about">About and licences</string>
+    <string name="about_version">Version %1$s</string>
+    <string name="about_close">Close</string>
+    <string name="about_text"><![CDATA[KakuKaku looks up Japanese text from your screen. It is a continuation of <b>Kaku</b> by 0xbad1d3a5 (github.com/0xbad1d3a5/Kaku) and is not endorsed by its author. It works offline and collects no data.<br><br>
+<b>Dictionary data</b><br>
+JMdict and KANJIDIC2 are the property of the Electronic Dictionary Research and Development Group (EDRDG) and are used under its licence (CC BY-SA 4.0), www.edrdg.org/edrdg/licence.html. The built-in dictionary is derived from them.<br><br>
+<b>Conjugation rules</b><br>
+The deinflection rules come from Rikaichan by Jonathan Zarate.<br><br>
+<b>Libraries</b><br>
+Google ML Kit text recognition (Google terms), AndroidX and Material Components, Gson (Apache License 2.0), ORMLite (ISC licence).<br><br>
+<b>Licence of Kaku and KakuKaku (BSD 3-Clause)</b><br>
+Copyright (c) 2016, 0xbad1d3a5<br>
+Copyright (c) 2026, atmstudent<br>
+All rights reserved.<br><br>
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:<br><br>
+* Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.<br><br>
+* Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.<br><br>
+* Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.<br><br>
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.]]></string>
     <string name="dictionaries_title">Dictionaries</string>
     <string name="dictionary_back">Back</string>
     <string name="dictionary_delete">Delete dictionary</string>
