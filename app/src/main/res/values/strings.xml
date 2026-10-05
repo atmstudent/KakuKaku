@@ -9,7 +9,7 @@
 <b>Dictionary data</b><br>
 JMdict and KANJIDIC2 are the property of the Electronic Dictionary Research and Development Group (EDRDG) and are used under its licence (CC BY-SA 4.0), www.edrdg.org/edrdg/licence.html. The built-in dictionary is derived from them.<br><br>
 <b>Conjugation rules</b><br>
-The deinflection rules come from Rikaichan by Jonathan Zarate.<br><br>
+The deinflection rules (deinflect.dat) come from Rikaichan by Jonathan Zarate. Rikaichan is licensed under the GNU General Public License (version 2 or later); this file is not covered by the BSD licence below and keeps its original terms.<br><br>
 <b>Libraries</b><br>
 Google ML Kit text recognition (Google terms), AndroidX and Material Components, Gson (Apache License 2.0), ORMLite (ISC licence).<br><br>
 <b>Licence of Kaku and KakuKaku (BSD 3-Clause)</b><br>

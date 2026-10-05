@@ -27,7 +27,7 @@ KakuKaku works offline. It asks for no network permission, collects nothing and 
 
 ## Licence and credits
 
-BSD 3-Clause, see [LICENSE](LICENSE). © 2016 0xbad1d3a5, © 2026 atmstudent. The deinflection rules (`deinflect.dat`) come from Rikaichan by Jonathan Zarate. Text recognition is Google ML Kit. The same notices are in the app under *About and licences*.
+BSD 3-Clause, see [LICENSE](LICENSE). © 2016 0xbad1d3a5, © 2026 atmstudent. The deinflection rules (`app/src/main/assets/deinflect.dat`) come from Rikaichan by Jonathan Zarate. Rikaichan is licensed under the GNU GPL (version 2 or later), and that file is not covered by the BSD licence above: it keeps its original terms. Text recognition is Google ML Kit. The same notices are in the app under *About and licences*.
 
 ## Dictionaries
 

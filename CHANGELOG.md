@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.1
+
+- The licence notices now say that the conjugation rules (`deinflect.dat`) come from Rikaichan and keep its GPL terms.
+
 ## 1.0.0
 
 First release as KakuKaku, a continuation of Kaku (formerly Mojiscope and Kaku2).
