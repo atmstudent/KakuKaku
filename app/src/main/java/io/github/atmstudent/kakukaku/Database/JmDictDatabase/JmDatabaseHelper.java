@@ -54,6 +54,12 @@ public class JmDatabaseHelper extends DatabaseHelper {
     }
 
     @Override
+    public void onOpen(SQLiteDatabase database) {
+        super.onOpen(database);
+        LookupIndex.INSTANCE.ensure(database);
+    }
+
+    @Override
     public void onUpgrade(SQLiteDatabase database, ConnectionSource connectionSource, int oldVersion, int newVersion) {
         // Can't use onUpgrade, because getDbDao() will sometimes run first due to being on another thread, opening a DB connection and causing issues when we try to delete the DB
         throw new NotImplementedException();

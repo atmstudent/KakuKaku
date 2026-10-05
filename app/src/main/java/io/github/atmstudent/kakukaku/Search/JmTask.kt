@@ -2,14 +2,12 @@ package io.github.atmstudent.kakukaku.Search
 
 import android.content.Context
 import android.util.Log
-import com.j256.ormlite.dao.Dao
-import com.j256.ormlite.dao.RawRowMapper
+import android.database.sqlite.SQLiteDatabase
 import io.github.atmstudent.kakukaku.Dictionary.DictionarySelection
 import io.github.atmstudent.kakukaku.Dictionary.PitchAccent
 import io.github.atmstudent.kakukaku.Dictionary.UserDictionaryStore
 import io.github.atmstudent.kakukaku.DB_KANJIDICT_NAME
 import io.github.atmstudent.kakukaku.toHiragana
-import io.github.atmstudent.kakukaku.toKatakana
 import io.github.atmstudent.kakukaku.Database.JmDictDatabase.JmDatabaseHelper
 import io.github.atmstudent.kakukaku.Database.JmDictDatabase.Models.EntryOptimized
 import io.github.atmstudent.kakukaku.Deinflictor.DeinflectionInfo
@@ -33,6 +31,15 @@ constructor(private val mSearchInfo: SearchInfo, private val mSearchJmTaskDone: 
     companion object
     {
         private val TAG = JmTask::class.java.getName()
+
+        /** Stays below SQLite's limit of 999 variables per statement */
+        const val SQL_CHUNK = 500
+
+        fun placeholders(count: Int) = List(count) { "?" }.joinToString(",")
+
+        /** Readings are only kana, so only words that are kana can match one; kept as hiragana, which is how they are stored */
+        fun readingKeys(words: Collection<String>): List<String> =
+                words.filter { w -> w.isNotEmpty() && w.all { it in '\u3041'..'\u30ff' } }.map { toHiragana(it) }.distinct()
     }
 
     private val mJmDbHelper: JmDatabaseHelper = JmDatabaseHelper.instance(context)
@@ -47,30 +54,39 @@ constructor(private val mSearchInfo: SearchInfo, private val mSearchJmTaskDone: 
     {
         val text = mSearchInfo.text
         val textOffset = mSearchInfo.textOffset
-        val entryOptimizedDao = mJmDbHelper.getDbDao<EntryOptimized>(EntryOptimized::class.java)
 
         val startDictTime = System.currentTimeMillis()
-        val firstChar = String(intArrayOf(text.codePointAt(textOffset)), 0, 1)
 
-        // What the flying fuck? Wasn't the entire point of using an ORM is so shit would be escaped for me?
-        var character = firstChar.replace("%", "\\%")
-        character = character.replace("_", "\\_")
-        character = character.replace("'", "''")
+        // Every prefix of the text can be a word, and so can what it deinflects to; only these are looked up
+        val end = if (textOffset + 80 >= text.length) text.length else textOffset + 80
+        val words = ArrayList<String>()
+        var word = text.substring(textOffset, end)
+        while (word.isNotEmpty())
+        {
+            words.add(word)
+            word = word.substring(0, word.length - 1)
+        }
+        val deinflections = words.associateWith { mDeinflector.getPotentialDeinflections(it) }
+        val candidates = LinkedHashSet<String>(words)
+        for (list in deinflections.values) for (deinf in list) candidates.add(deinf.word)
+
+        val db = mJmDbHelper.readableDatabase
 
         // An imported dictionary replaces the bundled word dictionary; kanji information always comes from the bundled one
         val selectedDictionary = DictionarySelection.get(mContext)
         val entries: List<EntryOptimized> = if (selectedDictionary == DictionarySelection.BUILT_IN)
         {
-            queryBundled(entryOptimizedDao, character, true)
+            queryBundled(db, candidates, true)
         }
         else
         {
-            queryBundled(entryOptimizedDao, character, false).filter { it.dictionary == DB_KANJIDICT_NAME } +
-                    UserDictionaryStore.get(mContext).search(selectedDictionary, firstChar)
+            queryBundled(db, candidates, false).filter { it.dictionary == DB_KANJIDICT_NAME } +
+                    UserDictionaryStore.get(mContext).search(selectedDictionary, candidates)
         }
+        val queryTime = System.currentTimeMillis() - startDictTime
 
-        val matchedEntries = rankResults(getMatchedEntries(text, textOffset, entries))
-        loadMeanings(entryOptimizedDao, matchedEntries)
+        val matchedEntries = rankResults(getMatchedEntries(words, deinflections, entries))
+        loadMeanings(db, matchedEntries)
 
         // Pitch accent comes from the pitch accent dictionary the user imported, whichever word dictionary is selected
         if (PitchAccent.isEnabled(mContext))
@@ -81,58 +97,68 @@ constructor(private val mSearchInfo: SearchInfo, private val mSearchJmTaskDone: 
                 if (result.entry.dictionary != DB_KANJIDICT_NAME) result.pitch = pitchAccent.lookup(result.entry.kanji, result.entry.readings)
             }
         }
-        Log.d(TAG, "Dict lookup time: ${System.currentTimeMillis() - startDictTime}")
+        Log.d(TAG, "Dict lookup time: ${System.currentTimeMillis() - startDictTime} (query $queryTime, ${candidates.size} candidates, ${entries.size} entries)")
 
         return matchedEntries
     }
 
     /**
-     * The bundled entries that start with [character] (already escaped for LIKE) in their written form and, if
-     * [byReading], in their reading too: とても is the reading of 迚も, which is hardly ever written in kanji.
-     * Readings are stored as one text ("ねこ, ネコ"), so a reading that starts with the character is either at the
-     * start of that text or after ", ". Kana can be written either way.
+     * The bundled entries written as one of [candidates] and, if [byReading], read as one of them: とても is the
+     * reading of 迚も, which is hardly ever written in kanji. Both lookups use an index ([LookupIndex]), and
+     * kana can be written either way.
      *
-     * Only the columns needed for matching and ranking are read; the long definitions of the thousands of entries
-     * that merely share a first character would make the lookup slow. See [loadMeanings].
+     * Only the columns needed for matching and ranking are read: the definitions are long. See [loadMeanings].
      */
-    private fun queryBundled(dao: Dao<EntryOptimized, Int>, character: String, byReading: Boolean): List<EntryOptimized>
+    private fun queryBundled(db: SQLiteDatabase, candidates: Collection<String>, byReading: Boolean): List<EntryOptimized>
     {
-        val starts = if (byReading) listOf(character, toHiragana(character), toKatakana(character)).distinct() else emptyList()
-        val sql = StringBuilder("SELECT id, kanji, readings, pos, priorities, dictionary, primaryEntry FROM entryoptimized WHERE kanji LIKE ?")
-        val args = arrayListOf("$character%")
-        for (start in starts)
-        {
-            sql.append(" OR readings LIKE ? OR readings LIKE ?")
-            args.add("$start%")
-            args.add("%, $start%")
-        }
+        val columns = "e.id, e.kanji, e.readings, e.pos, e.priorities, e.dictionary, e.primaryEntry"
+        val found = LinkedHashMap<Int, EntryOptimized>()
 
-        val mapper = RawRowMapper<EntryOptimized> { _, columns ->
-            EntryOptimized().also {
-                it.id = columns[0].toInt()
-                it.kanji = columns[1]
-                it.readings = columns[2]
-                it.pos = columns[3]
-                it.priorities = columns[4]
-                it.dictionary = columns[5]
-                it.isPrimaryEntry = columns[6] == "1" || columns[6] == "true"
+        fun collect(sql: String, args: List<String>)
+        {
+            db.rawQuery(sql, args.toTypedArray()).use { c ->
+                while (c.moveToNext())
+                {
+                    val id = c.getInt(0)
+                    if (found.containsKey(id)) continue
+                    found[id] = EntryOptimized().also {
+                        it.id = id
+                        it.kanji = c.getString(1)
+                        it.readings = c.getString(2)
+                        it.pos = c.getString(3)
+                        it.priorities = c.getString(4)
+                        it.dictionary = c.getString(5)
+                        it.isPrimaryEntry = c.getInt(6) != 0
+                    }
+                }
             }
         }
 
-        return dao.queryRaw(sql.toString(), mapper, *args.toTypedArray()).use { it.toList() }
+        for (chunk in candidates.chunked(SQL_CHUNK))
+        {
+            collect("SELECT $columns FROM entryoptimized e WHERE e.kanji IN (${placeholders(chunk.size)})", chunk)
+        }
+        if (byReading)
+        {
+            for (chunk in readingKeys(candidates).chunked(SQL_CHUNK))
+            {
+                collect("SELECT $columns FROM entry_reading r JOIN entryoptimized e ON e.id = r.entry_id WHERE r.reading IN (${placeholders(chunk.size)})", chunk)
+            }
+        }
+        return found.values.toList()
     }
 
     /** Fills in the definitions of the matched bundled entries, which [queryBundled] left out */
-    private fun loadMeanings(dao: Dao<EntryOptimized, Int>, results: List<JmSearchResult>)
+    private fun loadMeanings(db: SQLiteDatabase, results: List<JmSearchResult>)
     {
-        for (result in results)
+        val missing = results.map { it.entry }.filter { it.meanings == null && it.id != null }.associateBy { it.id }
+        for (chunk in missing.keys.chunked(SQL_CHUNK))
         {
-            val entry = result.entry
-            if (entry.meanings == null && entry.id != null)
-            {
-                entry.meanings = dao.queryForId(entry.id)?.meanings ?: ""
+            db.rawQuery("SELECT id, meanings FROM entryoptimized WHERE id IN (${placeholders(chunk.size)})", chunk.map { it.toString() }.toTypedArray()).use { c ->
+                while (c.moveToNext()) missing[c.getInt(0)]?.meanings = c.getString(1) ?: ""
             }
         }
+        for (entry in missing.values) if (entry.meanings == null) entry.meanings = ""
     }
 
     override fun onPostExecute(result: List<JmSearchResult>)
@@ -170,18 +196,16 @@ constructor(private val mSearchInfo: SearchInfo, private val mSearchJmTaskDone: 
     }
 
     @Throws(SQLException::class)
-    private fun getMatchedEntries(text: String, textOffset: Int, entries: List<EntryOptimized>): List<JmSearchResult>
+    private fun getMatchedEntries(words: List<String>, deinflections: Map<String, List<DeinflectionInfo>>, entries: List<EntryOptimized>): List<JmSearchResult>
     {
         val index = EntryIndex(entries)
-        val end = if (textOffset + 80 >= text.length) text.length else textOffset + 80
-        var word = text.substring(textOffset, end)
         val seenEntries = HashSet<EntryOptimized>()
         val results = ArrayList<JmSearchResult>()
 
-        while (word.isNotEmpty())
+        for (word in words)
         {
             // Find deinflections and add them
-            val deinfResultsList: List<DeinflectionInfo> = mDeinflector.getPotentialDeinflections(word)
+            val deinfResultsList: List<DeinflectionInfo> = deinflections.getValue(word)
             var count = 0
             for (deinfInfo in deinfResultsList)
             {
@@ -231,8 +255,6 @@ constructor(private val mSearchInfo: SearchInfo, private val mSearchJmTaskDone: 
                 results.add(JmSearchResult(entry, DeinflectionInfo(word, 0, ""), word))
                 seenEntries.add(entry)
             }
-
-            word = word.substring(0, word.length - 1)
         }
 
         return results

@@ -2,6 +2,7 @@
 
 package io.github.atmstudent.kakukaku
 
+import io.github.atmstudent.kakukaku.Database.JmDictDatabase.JmDatabaseHelper
 import android.content.Context
 import android.content.Intent
 import android.graphics.Point
@@ -153,6 +154,10 @@ fun setupKakuKakuDatabasesAndFiles(context: Context)
         var screenshotPath: String = context.filesDir.absolutePath + "/$SCREENSHOT_FOLDER_NAME"
         createDirIfNotExists(screenshotPath)
         deleteScreenshotsOlderThanOneDay(screenshotPath)
+
+        // Opening the database builds its lookup indexes on first use (a few seconds); do it now rather than during a lookup
+        val appContext = context.applicationContext
+        Thread { try { JmDatabaseHelper.instance(appContext).writableDatabase } catch (e: Exception) { Log.e(TAG, "Could not open the dictionary", e) } }.start()
     }
     catch (e: Exception)
     {

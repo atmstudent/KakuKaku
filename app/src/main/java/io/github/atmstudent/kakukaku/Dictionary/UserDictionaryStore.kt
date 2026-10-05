@@ -9,6 +9,8 @@ import io.github.atmstudent.kakukaku.DB_SPLIT_CHAR
 import io.github.atmstudent.kakukaku.Database.JmDictDatabase.Models.EntryOptimized
 import io.github.atmstudent.kakukaku.KAKUKAKU_PREF_FILE
 import io.github.atmstudent.kakukaku.KAKUKAKU_PREF_SELECTED_DICTIONARY
+import io.github.atmstudent.kakukaku.Search.JmTask
+import io.github.atmstudent.kakukaku.toKatakana
 import java.io.InputStream
 
 data class UserDictionary(val id: Long, val title: String, val revision: String, val entries: Int)
@@ -19,7 +21,7 @@ data class ImportResult(val dictionary: UserDictionary, val replacedIds: List<Lo
  * Dictionaries imported by the user (Yomitan format). Kept in their own database so the bundled
  * dictionary is never touched.
  */
-class UserDictionaryStore private constructor(context: Context) : SQLiteOpenHelper(context.applicationContext, "user_dictionaries.db", null, 2)
+class UserDictionaryStore private constructor(context: Context) : SQLiteOpenHelper(context.applicationContext, "user_dictionaries.db", null, 3)
 {
     init
     {
@@ -33,12 +35,14 @@ class UserDictionaryStore private constructor(context: Context) : SQLiteOpenHelp
         db.execSQL("CREATE TABLE dictionaries (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, revision TEXT NOT NULL, entries INTEGER NOT NULL)")
         db.execSQL("CREATE TABLE terms (dict_id INTEGER NOT NULL, term TEXT NOT NULL, reading TEXT NOT NULL, tags TEXT NOT NULL, rules TEXT NOT NULL, score INTEGER NOT NULL, sequence INTEGER NOT NULL, glossary TEXT NOT NULL)")
         db.execSQL("CREATE INDEX terms_lookup ON terms (dict_id, term)")
+        db.execSQL("CREATE INDEX terms_reading ON terms (dict_id, reading)")
         createPitchTable(db)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int)
     {
         if (oldVersion < 2) createPitchTable(db)
+        if (oldVersion < 3) db.execSQL("CREATE INDEX IF NOT EXISTS terms_reading ON terms (dict_id, reading)")
     }
 
     private fun createPitchTable(db: SQLiteDatabase)
@@ -177,6 +181,7 @@ class UserDictionaryStore private constructor(context: Context) : SQLiteOpenHelp
 
             // Building the index once at the end is much faster than maintaining it for every inserted row
             db.execSQL("DROP INDEX IF EXISTS terms_lookup")
+            db.execSQL("DROP INDEX IF EXISTS terms_reading")
 
             // Reads the title first so an unusable file fails before anything is written
             val title = YomitanParser.readIndex(openStream).title
@@ -233,6 +238,7 @@ class UserDictionaryStore private constructor(context: Context) : SQLiteOpenHelp
 
             onFinishing()
             db.execSQL("CREATE INDEX terms_lookup ON terms (dict_id, term)")
+            db.execSQL("CREATE INDEX terms_reading ON terms (dict_id, reading)")
 
             db.setTransactionSuccessful()
 
@@ -257,39 +263,57 @@ class UserDictionaryStore private constructor(context: Context) : SQLiteOpenHelp
     }
 
     /**
-     * Entries of [dictionaryId] whose written form starts with [firstChar], shaped like the bundled
-     * dictionary's entries so the existing matching and display code can use them.
+     * Entries of [dictionaryId] written as one of [candidates] or read as one of them, shaped like the bundled
+     * dictionary's entries so the existing matching and display code can use them. Both lookups use an index.
+     * Kana can be written either way, so the reading is looked up as hiragana and as katakana.
      */
-    fun search(dictionaryId: Long, firstChar: String): List<EntryOptimized>
+    fun search(dictionaryId: Long, candidates: Collection<String>): List<EntryOptimized>
     {
         val title = list().firstOrNull { it.id == dictionaryId }?.title ?: return emptyList()
-        val escaped = firstChar.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
-        class Group(val term: String, val reading: String, val senses: MutableList<String>, val tags: MutableList<String>, val rules: MutableSet<String>)
+        class Group(val term: String, val reading: String, val sequence: Long, val matchedTerm: Boolean, val senses: MutableList<String>, val tags: MutableList<String>, val rules: MutableSet<String>)
 
         val groups = LinkedHashMap<String, Group>()
         var unique = 0L
+        val seenRows = HashSet<String>()
+        val written = candidates.toHashSet()
+        val readingCandidates = JmTask.readingKeys(candidates).flatMap { listOf(it, toKatakana(it)) }.distinct()
 
-        readableDatabase.rawQuery(
-                "SELECT term, reading, tags, rules, sequence, glossary FROM terms WHERE dict_id = ? AND term LIKE ? ESCAPE '\\' ORDER BY score DESC",
-                arrayOf(dictionaryId.toString(), "$escaped%")).use { c ->
-            while (c.moveToNext())
-            {
-                val term = c.getString(0)
-                val reading = c.getString(1)
-                val sequence = c.getLong(4)
+        fun collect(where: String, args: List<String>)
+        {
+            readableDatabase.rawQuery(
+                    "SELECT term, reading, tags, rules, sequence, glossary FROM terms WHERE dict_id = ? AND $where ORDER BY score DESC",
+                    (listOf(dictionaryId.toString()) + args).toTypedArray()).use { c ->
+                while (c.moveToNext())
+                {
+                    val term = c.getString(0)
+                    val reading = c.getString(1)
+                    val sequence = c.getLong(4)
 
-                // Rows with the same sequence number are the separate senses of one word
-                val key = if (sequence != 0L) "$term\u0000$reading\u0000$sequence" else "u${unique++}"
-                val group = groups.getOrPut(key) { Group(term, reading, ArrayList(), ArrayList(), LinkedHashSet()) }
+                    // A row that both lookups find is added once
+                    val glossary = c.getString(5)
+                    if (!seenRows.add("$term\u0000$reading\u0000$sequence\u0000$glossary")) continue
 
-                group.senses.add(c.getString(5))
-                group.tags.add(c.getString(2))
-                c.getString(3).split(" ").filter { it.isNotEmpty() }.forEach { group.rules.add(it) }
+                    // Rows with the same sequence number are the separate senses of one word
+                    val key = if (sequence != 0L) "$term\u0000$reading\u0000$sequence" else "u${unique++}"
+                    val group = groups.getOrPut(key) { Group(term, reading, sequence, term in written, ArrayList(), ArrayList(), LinkedHashSet()) }
+
+                    group.senses.add(glossary)
+                    group.tags.add(c.getString(2))
+                    c.getString(3).split(" ").filter { it.isNotEmpty() }.forEach { group.rules.add(it) }
+                }
             }
         }
 
-        return groups.values.map {
+        for (chunk in written.chunked(JmTask.SQL_CHUNK)) collect("term IN (${JmTask.placeholders(chunk.size)})", chunk)
+        for (chunk in readingCandidates.chunked(JmTask.SQL_CHUNK)) collect("reading IN (${JmTask.placeholders(chunk.size)})", chunk)
+
+        // The Yomitan build of JMdict has a kana-only row for words that are usually written in kana. Where one
+        // was found by its written form, the kanji row of the same word (same sequence) found by its reading is a duplicate.
+        val kanaSequences = groups.values.filter { it.matchedTerm && (it.reading.isEmpty() || it.term == it.reading) && it.sequence != 0L }.map { it.sequence }.toSet()
+        val kept = groups.values.filter { it.matchedTerm || it.sequence == 0L || it.sequence !in kanaSequences }
+
+        return kept.map {
             val entry = EntryOptimized()
             entry.kanji = it.term
             entry.readings = it.reading
