@@ -172,4 +172,23 @@ class YomitanParserTest
 
         assertEquals("start one; two b 漢", YomitanParser.flatten(content))
     }
+
+    @Test
+    fun parsesPitchBanks()
+    {
+        val rows = ArrayList<ImportedPitch>()
+        val (meta, count) = YomitanParser.parsePitch(zip(mapOf(
+                "index.json" to """{"title":"Pitch","format":3,"revision":"1"}""",
+                "term_meta_bank_1.json" to """[
+                    ["猫","pitch",{"reading":"ねこ","pitches":[{"position":1},{"position":0},{"position":1}]}],
+                    ["橋","pitch",{"reading":"はし","pitches":[{"position":"LH"}, {"position":"HL"}, {"position":"LHL"}]}],
+                    ["犬","freq",{"value":5}],
+                    ["ネコ","pitch",{"reading":"ネコ","pitches":[]}]
+                ]"""))) { rows.addAll(it) }
+
+        assertEquals("Pitch", meta.title)
+        assertEquals(2, count)
+        assertEquals(ImportedPitch("猫", "ねこ", "1,0"), rows[0])
+        assertEquals(ImportedPitch("橋", "はし", "0,1,2"), rows[1])
+    }
 }

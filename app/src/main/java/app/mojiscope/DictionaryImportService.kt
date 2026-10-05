@@ -42,16 +42,17 @@ class DictionaryImportService : Service()
         sBusy = true
 
         val totalBytes = fileSize(uri)
+        val pitch = intent.getBooleanExtra(EXTRA_PITCH, false)
 
         ServiceCompat.startForeground(this, NOTIFICATION_ID, buildNotification(0, 0, totalBytes > 0, false), ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
         DictionaryImport.publish(DictionaryImport.Progress(0, 0, false, totalBytes > 0))
 
-        thread(name = "DictionaryImport") { runImport(uri, totalBytes) }
+        thread(name = "DictionaryImport") { runImport(uri, totalBytes, pitch) }
 
         return START_NOT_STICKY
     }
 
-    private fun runImport(uri: Uri, totalBytes: Long)
+    private fun runImport(uri: Uri, totalBytes: Long, pitch: Boolean)
     {
         val numbers = NumberFormat.getIntegerInstance()
         var lastUpdate = 0L
@@ -59,7 +60,8 @@ class DictionaryImportService : Service()
 
         try
         {
-            val result = UserDictionaryStore.get(this).import({ contentResolver.openInputStream(uri) ?: throw IOException("The file could not be opened") }, { count, bytesRead ->
+            val open = { contentResolver.openInputStream(uri) ?: throw IOException("The file could not be opened") }
+            val onProgress = { count: Int, bytesRead: Long ->
                 val now = System.currentTimeMillis()
                 if (now - lastUpdate > 100)
                 {
@@ -68,13 +70,23 @@ class DictionaryImportService : Service()
                     DictionaryImport.publish(DictionaryImport.Progress(percent, count, false, totalBytes > 0))
                     updateNotification(percent, count, totalBytes > 0, false)
                 }
-            }, {
+            }
+            val onFinishing = {
                 DictionaryImport.publish(DictionaryImport.Progress(100, 0, true, totalBytes > 0))
                 updateNotification(100, 0, totalBytes > 0, true)
-            })
+            }
 
-            DictionarySelection.set(this, result.dictionary.id)
-            message = getString(R.string.dictionary_import_done, result.dictionary.title, numbers.format(result.dictionary.entries))
+            if (pitch)
+            {
+                val result = UserDictionaryStore.get(this).importPitch(open, onProgress, onFinishing)
+                message = getString(R.string.pitch_import_done, result.title, numbers.format(result.entries))
+            }
+            else
+            {
+                val result = UserDictionaryStore.get(this).import(open, onProgress, onFinishing)
+                DictionarySelection.set(this, result.dictionary.id)
+                message = getString(R.string.dictionary_import_done, result.dictionary.title, numbers.format(result.dictionary.entries))
+            }
         }
         catch (e: DictionaryFormatException)
         {
@@ -168,6 +180,9 @@ class DictionaryImportService : Service()
         /** True from the moment an import starts until it is over */
         @Volatile
         private var sBusy = false
+
+        /** Boolean extra: the file is a pitch accent dictionary, not a word dictionary */
+        const val EXTRA_PITCH = "pitch"
 
         private const val NOTIFICATION_ID = 2
         private const val CHANNEL_ID = "dictionary_import_channel"

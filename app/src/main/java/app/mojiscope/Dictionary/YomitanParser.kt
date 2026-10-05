@@ -1,5 +1,6 @@
 package app.mojiscope.Dictionary
 
+import app.mojiscope.toHiragana
 import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
@@ -23,6 +24,9 @@ data class ImportedTerm(
         val score: Int,
         val sequence: Long,
         val glossary: String)
+
+/** One pitch accent of a word: the downstep positions ("0" is flat, "1" drops after the first mora) of a reading, comma separated */
+data class ImportedPitch(val term: String, val reading: String, val positions: String)
 
 class DictionaryFormatException(message: String) : Exception(message)
 
@@ -58,12 +62,13 @@ private class CountingInputStream(private val source: InputStream, private val o
 
 /**
  * Reads dictionaries in the Yomitan/Yomichan zip format: an index.json plus term_bank_N.json and
- * kanji_bank_N.json files. Frequency, pitch accent and other meta banks are ignored.
+ * kanji_bank_N.json files. Frequency and other meta banks are ignored; pitch accent banks are read by [parsePitch].
  */
 object YomitanParser
 {
     private val TERM_BANK = Regex("(.*/)?term_bank_\\d+\\.json")
     private val KANJI_BANK = Regex("(.*/)?kanji_bank_\\d+\\.json")
+    private val META_BANK = Regex("(.*/)?term_meta_bank_\\d+\\.json")
 
     /**
      * @param openStream opens the zip from the start; called twice because the zip is read sequentially
@@ -100,10 +105,86 @@ object YomitanParser
 
         if (count == 0)
         {
-            throw DictionaryFormatException("This dictionary has no term or kanji entries (frequency and pitch-accent dictionaries are not supported).")
+            throw DictionaryFormatException("This dictionary has no term or kanji entries (frequency dictionaries are not supported, and pitch accent has its own import).")
         }
 
         return Pair(meta, count)
+    }
+
+    /**
+     * Reads the pitch accent entries of a Yomitan zip (term_meta_bank_N.json rows [term, "pitch", {reading, pitches}]).
+     * Readings are stored in hiragana so that katakana and hiragana spellings match.
+     */
+    fun parsePitch(openStream: () -> InputStream, onBytesRead: (Long) -> Unit = {}, onRows: (List<ImportedPitch>) -> Unit): Pair<DictionaryMeta, Int>
+    {
+        val meta = readIndex(openStream)
+
+        var count = 0
+        openStream().use { raw ->
+            val zip = ZipInputStream(CountingInputStream(raw, onBytesRead))
+            while (true)
+            {
+                val entry = zip.nextEntry ?: break
+                if (entry.isDirectory || !META_BANK.matches(entry.name)) continue
+
+                val rows = parsePitchBank(readJson(zip))
+                if (rows.isNotEmpty())
+                {
+                    count += rows.size
+                    onRows(rows)
+                }
+            }
+        }
+
+        if (count == 0)
+        {
+            throw DictionaryFormatException("This dictionary has no pitch accent entries (term_meta_bank files with \"pitch\" rows).")
+        }
+
+        return Pair(meta, count)
+    }
+
+    private fun parsePitchBank(bank: JsonElement): List<ImportedPitch>
+    {
+        val rows = ArrayList<ImportedPitch>()
+        if (!bank.isJsonArray) return rows
+
+        for (item in bank.asJsonArray)
+        {
+            if (!item.isJsonArray) continue
+            val a = item.asJsonArray
+            if (a.size() < 3 || a[1].text() != "pitch" || !a[2].isJsonObject) continue
+
+            val term = a[0].text()
+            val data = a[2].asJsonObject
+            val reading = data.string("reading").ifEmpty { term }
+            val pitches = data.get("pitches")
+            if (term.isEmpty() || pitches == null || !pitches.isJsonArray) continue
+
+            val positions = LinkedHashSet<String>()
+            for (p in pitches.asJsonArray)
+            {
+                if (!p.isJsonObject) continue
+                val position = p.asJsonObject.get("position")
+                if (position == null || !position.isJsonPrimitive) continue
+                downstep(position.asString)?.let { positions.add(it) }
+            }
+            if (positions.isEmpty()) continue
+
+            rows.add(ImportedPitch(term, toHiragana(reading), positions.joinToString(",")))
+        }
+
+        return rows
+    }
+
+    /** A position is a number, or a high/low pattern such as "LHHL" (the drop is after the last H, if an L follows it) */
+    private fun downstep(position: String): String?
+    {
+        position.toIntOrNull()?.let { return it.toString() }
+        if (position.isEmpty() || !position.all { it == 'H' || it == 'L' }) return null
+
+        val lastHigh = position.lastIndexOf('H')
+        return if (lastHigh >= 0 && lastHigh < position.length - 1) (lastHigh + 1).toString() else "0"
     }
 
     fun readIndex(openStream: () -> InputStream): DictionaryMeta

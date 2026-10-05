@@ -32,7 +32,11 @@ class DictionariesActivity : AppCompatActivity()
     private val mExecutor = Executors.newSingleThreadExecutor()
 
     private val mPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) importDictionary(uri)
+        if (uri != null) importDictionary(uri, false)
+    }
+
+    private val mPitchPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) importDictionary(uri, true)
     }
 
     override fun onCreate(savedInstanceState: Bundle?)
@@ -50,6 +54,8 @@ class DictionariesActivity : AppCompatActivity()
 
         mBinding.toolbar.setNavigationOnClickListener { finish() }
         mBinding.importButton.setOnClickListener { mPicker.launch(arrayOf("*/*")) }
+        mBinding.importPitchButton.setOnClickListener { mPitchPicker.launch(arrayOf("*/*")) }
+        mBinding.deletePitchButton.setOnClickListener { deletePitch() }
         mBinding.getJmdictButton.setOnClickListener { openLink(JMDICT_RELEASES_URL) }
         mBinding.moreDictionariesButton.setOnClickListener { openLink(YOMITAN_DICTIONARIES_URL) }
 
@@ -77,15 +83,37 @@ class DictionariesActivity : AppCompatActivity()
             mExecutor.execute {
                 val selected = DictionarySelection.get(this)
                 val dictionaries = UserDictionaryStore.get(this).list()
+                val pitch = UserDictionaryStore.get(this).pitchSource()
 
                 runOnUiThread {
-                    if (!isDestroyed) showDictionaries(selected, dictionaries)
+                    if (!isDestroyed)
+                    {
+                        showDictionaries(selected, dictionaries)
+                        showPitch(pitch)
+                    }
                 }
             }
         }
         catch (e: RejectedExecutionException)
         {
             // The screen is closing
+        }
+    }
+
+    private fun showPitch(pitch: UserDictionary?)
+    {
+        mBinding.pitchStatus.text = if (pitch == null)
+            getString(R.string.pitch_none)
+        else
+            getString(R.string.pitch_imported, pitch.title, NumberFormat.getIntegerInstance().format(pitch.entries))
+        mBinding.deletePitchButton.visibility = if (pitch == null) View.GONE else View.VISIBLE
+    }
+
+    private fun deletePitch()
+    {
+        mExecutor.execute {
+            UserDictionaryStore.get(this).deletePitch()
+            runOnUiThread { refresh() }
         }
     }
 
@@ -146,7 +174,7 @@ class DictionariesActivity : AppCompatActivity()
     /**
      * The import itself runs in a foreground service, so it carries on if you leave this screen or the app
      */
-    private fun importDictionary(uri: Uri)
+    private fun importDictionary(uri: Uri, pitch: Boolean)
     {
         if (DictionaryImport.isRunning) return
 
@@ -162,6 +190,7 @@ class DictionariesActivity : AppCompatActivity()
 
         val intent = Intent(this, DictionaryImportService::class.java)
                 .setData(uri)
+                .putExtra(DictionaryImportService.EXTRA_PITCH, pitch)
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         ContextCompat.startForegroundService(this, intent)
 
@@ -178,6 +207,7 @@ class DictionariesActivity : AppCompatActivity()
         val running = progress != null
 
         mBinding.importButton.isEnabled = !running
+        mBinding.importPitchButton.isEnabled = !running
         mBinding.importProgress.visibility = if (running) View.VISIBLE else View.GONE
         mBinding.importStatus.visibility = if (running) View.VISIBLE else View.GONE
 

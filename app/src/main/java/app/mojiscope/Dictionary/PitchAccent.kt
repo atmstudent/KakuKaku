@@ -1,19 +1,15 @@
 package app.mojiscope.Dictionary
 
 import android.content.Context
-import android.database.sqlite.SQLiteDatabase
-import android.util.Log
 import app.mojiscope.MOJI_PREF_FILE
 import app.mojiscope.MOJI_PREF_PITCH_ACCENT
-import app.mojiscope.PITCH_DATABASE_NAME
 import app.mojiscope.toHiragana
-import java.io.File
 
 /**
- * The bundled pitch accent dictionary. It works alongside whichever word dictionary is selected:
+ * The pitch accent dictionary the user has imported. It works alongside whichever word dictionary is selected:
  * the downstep positions of a word are shown after its reading, for example 猫 (ねこ) [1].
  */
-class PitchAccent private constructor(private val db: SQLiteDatabase?)
+class PitchAccent private constructor(private val store: UserDictionaryStore)
 {
     /**
      * Downstep positions of a word, formatted like "[1]" or "[1][0]" for words with several accents.
@@ -21,8 +17,6 @@ class PitchAccent private constructor(private val db: SQLiteDatabase?)
      */
     fun lookup(term: String, readings: String): String
     {
-        val db = db ?: return ""
-
         val wanted = readings.split(",")
                 .map { toHiragana(it.trim()) }
                 .filter { it.isNotEmpty() }
@@ -30,11 +24,9 @@ class PitchAccent private constructor(private val db: SQLiteDatabase?)
                 .toSet()
 
         val positions = LinkedHashSet<String>()
-        db.rawQuery("SELECT reading, positions FROM pitch WHERE term = ?", arrayOf(term)).use { c ->
-            while (c.moveToNext())
-            {
-                if (c.getString(0) in wanted) positions.addAll(c.getString(1).split(","))
-            }
+        for ((reading, stored) in store.pitchFor(term))
+        {
+            if (reading in wanted) positions.addAll(stored.split(","))
         }
 
         return positions.joinToString("") { "[$it]" }
@@ -42,30 +34,7 @@ class PitchAccent private constructor(private val db: SQLiteDatabase?)
 
     companion object
     {
-        private const val TAG = "PitchAccent"
-
-        @Volatile
-        private var instance: PitchAccent? = null
-
-        fun get(context: Context): PitchAccent
-        {
-            return instance ?: synchronized(this) {
-                instance ?: open(context.applicationContext).also { instance = it }
-            }
-        }
-
-        private fun open(context: Context): PitchAccent
-        {
-            return try
-            {
-                PitchAccent(SQLiteDatabase.openDatabase(File(context.filesDir, PITCH_DATABASE_NAME).absolutePath, null, SQLiteDatabase.OPEN_READONLY))
-            }
-            catch (e: Exception)
-            {
-                Log.e(TAG, "Unable to open the pitch accent database", e)
-                PitchAccent(null)
-            }
-        }
+        fun get(context: Context): PitchAccent = PitchAccent(UserDictionaryStore.get(context))
 
         fun isEnabled(context: Context): Boolean
         {

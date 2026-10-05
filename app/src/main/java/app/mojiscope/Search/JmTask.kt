@@ -72,7 +72,7 @@ constructor(private val mSearchInfo: SearchInfo, private val mSearchJmTaskDone: 
         val matchedEntries = rankResults(getMatchedEntries(text, textOffset, entries))
         loadMeanings(entryOptimizedDao, matchedEntries)
 
-        // Pitch accent comes from its own bundled dictionary, whichever word dictionary is selected
+        // Pitch accent comes from the pitch accent dictionary the user imported, whichever word dictionary is selected
         if (PitchAccent.isEnabled(mContext))
         {
             val pitchAccent = PitchAccent.get(mContext)

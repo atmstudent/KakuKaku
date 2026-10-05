@@ -136,8 +136,7 @@ fun setupMojiscopeDatabasesAndFiles(context: Context)
 {
     try {
         val filesAndPaths = hashMapOf(
-                JMDICT_DATABASE_NAME to context.filesDir.absolutePath,
-                PITCH_DATABASE_NAME to context.filesDir.absolutePath)
+                JMDICT_DATABASE_NAME to context.filesDir.absolutePath)
 
         deleteOutdatedDatabases(context)
 
@@ -169,8 +168,7 @@ fun setupMojiscopeDatabasesAndFiles(context: Context)
 fun deleteOutdatedDatabases(context: Context)
 {
     context.filesDir.listFiles()?.filter {
-        (it.name.startsWith("DB_") && it.name.contains("Dict-") && !it.name.startsWith(JMDICT_DATABASE_NAME)) ||
-                (it.name.startsWith("DB_MojiPitch-") && !it.name.startsWith(PITCH_DATABASE_NAME))
+        it.name.startsWith("DB_") && it.name.contains("Dict-") && !it.name.startsWith(JMDICT_DATABASE_NAME)
     }?.forEach {
         Log.d(TAG, "Deleting outdated database ${it.name}")
         it.delete()

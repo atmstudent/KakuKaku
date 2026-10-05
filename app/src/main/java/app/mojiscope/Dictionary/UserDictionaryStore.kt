@@ -19,7 +19,7 @@ data class ImportResult(val dictionary: UserDictionary, val replacedIds: List<Lo
  * Dictionaries imported by the user (Yomitan format). Kept in their own database so the bundled
  * dictionary is never touched.
  */
-class UserDictionaryStore private constructor(context: Context) : SQLiteOpenHelper(context.applicationContext, "user_dictionaries.db", null, 1)
+class UserDictionaryStore private constructor(context: Context) : SQLiteOpenHelper(context.applicationContext, "user_dictionaries.db", null, 2)
 {
     init
     {
@@ -33,10 +33,100 @@ class UserDictionaryStore private constructor(context: Context) : SQLiteOpenHelp
         db.execSQL("CREATE TABLE dictionaries (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, revision TEXT NOT NULL, entries INTEGER NOT NULL)")
         db.execSQL("CREATE TABLE terms (dict_id INTEGER NOT NULL, term TEXT NOT NULL, reading TEXT NOT NULL, tags TEXT NOT NULL, rules TEXT NOT NULL, score INTEGER NOT NULL, sequence INTEGER NOT NULL, glossary TEXT NOT NULL)")
         db.execSQL("CREATE INDEX terms_lookup ON terms (dict_id, term)")
+        createPitchTable(db)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int)
     {
+        if (oldVersion < 2) createPitchTable(db)
+    }
+
+    private fun createPitchTable(db: SQLiteDatabase)
+    {
+        db.execSQL("CREATE TABLE pitch (term TEXT NOT NULL, reading TEXT NOT NULL, positions TEXT NOT NULL)")
+        db.execSQL("CREATE TABLE pitch_source (title TEXT NOT NULL, entries INTEGER NOT NULL)")
+        db.execSQL("CREATE INDEX pitch_lookup ON pitch (term)")
+    }
+
+    /** The imported pitch accent dictionary, or null if there is none */
+    fun pitchSource(): UserDictionary?
+    {
+        readableDatabase.rawQuery("SELECT title, entries FROM pitch_source", null).use { c ->
+            return if (c.moveToFirst()) UserDictionary(PITCH_ID, c.getString(0), "", c.getInt(1)) else null
+        }
+    }
+
+    fun deletePitch()
+    {
+        val db = writableDatabase
+        db.beginTransaction()
+        try
+        {
+            db.delete("pitch", null, null)
+            db.delete("pitch_source", null, null)
+            db.setTransactionSuccessful()
+        }
+        finally
+        {
+            db.endTransaction()
+        }
+    }
+
+    /** Downstep positions stored for [term], as pairs of hiragana reading and comma separated positions */
+    fun pitchFor(term: String): List<Pair<String, String>>
+    {
+        val result = ArrayList<Pair<String, String>>()
+        readableDatabase.rawQuery("SELECT reading, positions FROM pitch WHERE term = ?", arrayOf(term)).use { c ->
+            while (c.moveToNext()) result.add(Pair(c.getString(0), c.getString(1)))
+        }
+        return result
+    }
+
+    /**
+     * Imports a Yomitan pitch accent zip, replacing the pitch accent dictionary that was there. One
+     * transaction, so a failed import leaves the old one in place.
+     */
+    fun importPitch(openStream: () -> InputStream, onProgress: (entries: Int, bytesRead: Long) -> Unit, onFinishing: () -> Unit = {}): UserDictionary
+    {
+        val db = writableDatabase
+        db.beginTransaction()
+        try
+        {
+            db.execSQL("DROP INDEX IF EXISTS pitch_lookup")
+            db.delete("pitch", null, null)
+            db.delete("pitch_source", null, null)
+
+            val statement = db.compileStatement("INSERT INTO pitch (term, reading, positions) VALUES (?, ?, ?)")
+            var imported = 0
+            var bytesRead = 0L
+
+            val (meta, count) = YomitanParser.parsePitch(openStream, { bytesRead = it }) { rows ->
+                for (row in rows)
+                {
+                    statement.clearBindings()
+                    statement.bindString(1, row.term)
+                    statement.bindString(2, row.reading)
+                    statement.bindString(3, row.positions)
+                    statement.executeInsert()
+                }
+                imported += rows.size
+                onProgress(imported, bytesRead)
+            }
+
+            val source = ContentValues()
+            source.put("title", meta.title)
+            source.put("entries", count)
+            db.insertOrThrow("pitch_source", null, source)
+
+            onFinishing()
+            db.execSQL("CREATE INDEX pitch_lookup ON pitch (term)")
+            db.setTransactionSuccessful()
+            return UserDictionary(PITCH_ID, meta.title, "", count)
+        }
+        finally
+        {
+            db.endTransaction()
+        }
     }
 
     fun list(): List<UserDictionary>
@@ -216,6 +306,7 @@ class UserDictionaryStore private constructor(context: Context) : SQLiteOpenHelp
     companion object
     {
         private const val TAG = "UserDictionaryStore"
+        const val PITCH_ID = -2L
 
         @Volatile
         private var instance: UserDictionaryStore? = null
