@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace 'app.mojiscope'
+    namespace 'io.github.atmstudent.kakukaku'
     compileSdk 37
 
     compileOptions {
@@ -13,7 +13,7 @@ android {
 
     def versionPrefix = "2.0"
     defaultConfig {
-        applicationId "app.mojiscope"
+        applicationId "io.github.atmstudent.kakukaku"
         minSdk 26
         targetSdk 36
         versionCode 79
@@ -52,7 +52,7 @@ android {
     testOptions {
         unitTests.returnDefaultValues = true
         // GenerateDictionary parses the whole of JMdict and needs about 3 GB, so it only runs on request
-        // (./gradlew testDebugUnitTest -PgenerateDictionary --tests app.mojiscope.GenerateDictionary)
+        // (./gradlew testDebugUnitTest -PgenerateDictionary --tests io.github.atmstudent.kakukaku.GenerateDictionary)
         unitTests.all {
             if (project.hasProperty('generateDictionary')) {
                 maxHeapSize = '3g'

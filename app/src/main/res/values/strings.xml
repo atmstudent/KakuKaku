@@ -1,6 +1,6 @@
 <resources>
-    <string name="app_name">Kaku2</string>
-    <string name="support_text">Kaku2 is running. Drag the box over Japanese text, then double-tap it.</string>
+    <string name="app_name">KakuKaku</string>
+    <string name="support_text">KakuKaku is running. Drag the box over Japanese text, then double-tap it.</string>
     <string name="menu_dictionaries">Dictionaries</string>
     <string name="dictionaries_title">Dictionaries</string>
     <string name="dictionary_back">Back</string>
@@ -40,8 +40,8 @@
     <string name="start_button">Start</string>
     <string name="stop_button">Stop</string>
     <string name="overlay_needed">Press Start first to grant the overlay permission</string>
-    <string name="try_it_label">Try it: place the capture box over the text below, or select the text and choose Kaku2</string>
+    <string name="try_it_label">Try it: place the capture box over the text below, or select the text and choose KakuKaku</string>
     <string name="sample_horizontal">吾輩は猫である。\n今日は天気がとてもよかったので、友達と一緒に公園へ散歩に行って、桜の花を見ながらお弁当を食べました。</string>
     <string name="sample_vertical">日\n本\n語\nを\n読\nむ</string>
-    <string name="moji_loading">Kaku2 is loading…</string>
+    <string name="kakukaku_loading">KakuKaku is loading…</string>
 </resources>

@@ -17,7 +17,7 @@
 #}
 
 # OrmLite uses reflection over annotated model classes
--keep class app.mojiscope.Database.** { *; }
+-keep class io.github.atmstudent.kakukaku.Database.** { *; }
 -keepclassmembers class * { @com.j256.ormlite.field.DatabaseField *; }
 -dontwarn javax.persistence.**
 -dontwarn java.lang.management.**

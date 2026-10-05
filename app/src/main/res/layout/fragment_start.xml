@@ -33,7 +33,7 @@
             android:paddingBottom="24dp">
 
             <TextView
-                android:id="@+id/moji_logo"
+                android:id="@+id/kakukaku_logo"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="画2"
@@ -42,7 +42,7 @@
                 android:textSize="80sp" />
 
             <TextView
-                android:id="@+id/moji_title"
+                android:id="@+id/kakukaku_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/app_tagline"
@@ -55,7 +55,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:gravity="center"
-                android:text="@string/moji_loading"
+                android:text="@string/kakukaku_loading"
                 android:textAppearance="?attr/textAppearanceBodyMedium"
                 android:textColor="?attr/colorOnSurfaceVariant" />
 

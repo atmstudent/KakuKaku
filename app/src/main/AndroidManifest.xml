@@ -8,7 +8,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
     <application
-        android:name=".MojiApp"
+        android:name=".KakuKakuApp"
         android:allowBackup="true"
         android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/ic_launcher"
@@ -25,7 +25,7 @@
 
         <activity
             android:name=".MainActivity"
-            android:label="Kaku2"
+            android:label="KakuKaku"
             android:noHistory="false"
             android:launchMode="standard"
             android:screenOrientation="portrait"
@@ -44,7 +44,7 @@
 
         <activity
             android:name=".PassthroughActivity"
-            android:label="Kaku2"
+            android:label="KakuKaku"
             android:theme="@style/AppTheme.Invisible"
             android:launchMode="singleInstance"
             android:noHistory="true"
