@@ -40,7 +40,6 @@ class MainStartFragment : Fragment()
             when (it.itemId)
             {
                 R.id.menu_dictionaries -> startActivity(Intent(mainActivity, DictionariesActivity::class.java))
-                R.id.menu_tutorial -> startActivity(Intent(mainActivity, TutorialActivity::class.java))
             }
             true
         }

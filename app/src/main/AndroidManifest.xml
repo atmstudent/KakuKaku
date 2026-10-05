@@ -43,15 +43,6 @@
             android:screenOrientation="portrait" />
 
         <activity
-            android:name=".TutorialActivity"
-            android:exported="false"
-            android:label="Kaku2 Tutorial"
-            android:noHistory="false"
-            android:launchMode="standard"
-            android:screenOrientation="portrait">
-        </activity>
-
-        <activity
             android:name=".PassthroughActivity"
             android:label="Kaku2"
             android:theme="@style/AppTheme.Invisible"
