@@ -58,6 +58,9 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" AN
     <string name="start_hint">Press Start to begin. Android will ask for permission to show over other apps and to capture your screen.</string>
     <string name="start_button">Start</string>
     <string name="stop_button">Stop</string>
+    <string name="overlay_help_title">Display over other apps is off</string>
+    <string name="overlay_help_message">KakuKaku needs this permission to show the capture box. If the switch is greyed out or turns itself off, Android is restricting an app installed from a browser or file manager.\n\nOpen the app info, tap the ⋮ menu in the top-right corner, choose \"Allow restricted settings\", then press Start again. (The menu entry appears after you have tried to enable the permission once.)</string>
+    <string name="overlay_help_open">Open app info</string>
     <string name="overlay_needed">Press Start first to grant the overlay permission</string>
     <string name="try_it_label">Try it: place the capture box over the text below, or select the text and choose KakuKaku</string>
     <string name="sample_horizontal">吾輩は猫である。\n今日は天気がとてもよかったので、友達と一緒に公園へ散歩に行って、桜の花を見ながらお弁当を食べました。</string>

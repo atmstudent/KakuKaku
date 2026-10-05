@@ -16,6 +16,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.core.content.ContextCompat
 
 
@@ -33,8 +34,24 @@ class MainActivity : AppCompatActivity()
         }
         else
         {
-            Toast.makeText(this, "Check Permission: Draw on Other Apps\n$relaunchAppText", Toast.LENGTH_LONG).show()
+            showOverlayHelp()
         }
+    }
+
+    /**
+     * Android blocks "display over other apps" for an app installed from a browser or file manager until
+     * "Allow restricted settings" is chosen in its app info
+     */
+    private fun showOverlayHelp()
+    {
+        MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.overlay_help_title)
+                .setMessage(R.string.overlay_help_message)
+                .setPositiveButton(R.string.overlay_help_open) { _, _ ->
+                    startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
+                }
+                .setNegativeButton(R.string.dictionary_cancel, null)
+                .show()
     }
 
     // Notifications are optional for function but required to see the foreground-service controls

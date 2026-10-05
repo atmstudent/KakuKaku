@@ -19,6 +19,8 @@ KakuKaku is a **continuation of [Kaku](https://github.com/0xbad1d3a5/Kaku)** by 
 
 Download `KakuKaku-<version>.apk` from the [Releases](../../releases) page and open it (Android asks you to allow installs from your browser or file manager). It needs Android 8.0 or newer on an arm64 phone or tablet. 
 
+If Android will not let you turn on "Display over other apps" (the switch is greyed out), it is restricting an app installed from outside a store. Open **Settings → Apps → KakuKaku**, tap the **⋮** menu in the top-right corner, choose **Allow restricted settings**, then try again. The menu entry only appears after you have tried to enable the permission once. KakuKaku also shows this hint when the permission is missing.
+
 Press **Start**, allow drawing over other apps and screen capture, drag the box over Japanese text and double-tap it. Tap a character in the popup to look up from there.
 
 ## Privacy
