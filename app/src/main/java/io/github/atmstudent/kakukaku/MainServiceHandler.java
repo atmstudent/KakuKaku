@@ -45,6 +45,10 @@ public class MainServiceHandler extends Handler {
                 instantKanjiWindow.show();
             }
             else {
+                // A double-tap in instant mode also starts an instant scan with the first tap; the full popup replaces it
+                InstantKanjiWindow instantKanjiWindow = mWindowCoordinator.getWindowOfType(Constants.WINDOW_INSTANT_KANJI);
+                instantKanjiWindow.hide();
+
                 InformationWindow infoWindow = mWindowCoordinator.getWindowOfType(Constants.WINDOW_INFO);
                 infoWindow.setResult(result.getDisplayData());
                 // The first character is looked up right away, like when the text comes from the share menu

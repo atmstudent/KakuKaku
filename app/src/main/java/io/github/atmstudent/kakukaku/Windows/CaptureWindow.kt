@@ -468,13 +468,11 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
                     mImageView.setImageBitmap(mScreenshotForOcr!!.cachedScreenshot)
                 }
 
+                // Instant mode: scan as soon as the box is let go, whatever its size (not when this is the
+                // release of a double-tap, which scans by itself)
                 if (mPrefs!!.instantModeSetting && System.currentTimeMillis() > mLastDoubleTapTime + mLastDoubleTapIgnoreDelay)
                 {
-                    val sizeForInstant = minSize * 3
-                    if (sizeForInstant >= mScreenshotForOcr!!.params!!.width || sizeForInstant >= mScreenshotForOcr!!.params!!.height)
-                    {
-                        performOcr(true)
-                    }
+                    performOcr(true)
                 }
 
                 mProcessingPreview = false
