@@ -5,18 +5,22 @@ import android.os.Bundle
 import android.content.Intent
 import android.view.LayoutInflater
 import android.view.View
+import android.text.TextUtils
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import io.github.atmstudent.kakukaku.Dictionary.DictionaryImport
 import io.github.atmstudent.kakukaku.Dictionary.DictionarySelection
-import io.github.atmstudent.kakukaku.Dictionary.PitchAccent
+import io.github.atmstudent.kakukaku.Dictionary.MetaKind
+import io.github.atmstudent.kakukaku.Dictionary.MetaSelection
 import io.github.atmstudent.kakukaku.Dictionary.UserDictionary
 import io.github.atmstudent.kakukaku.Dictionary.UserDictionaryStore
 import io.github.atmstudent.kakukaku.databinding.ActivityDictionariesBinding
 import io.github.atmstudent.kakukaku.databinding.ItemDictionaryBinding
+import io.github.atmstudent.kakukaku.databinding.SectionDictionaryBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import java.text.NumberFormat
@@ -24,12 +28,25 @@ import java.util.concurrent.Executors
 import java.util.concurrent.RejectedExecutionException
 
 /**
- * Choose which dictionary is used for lookups and import personal dictionaries (Yomitan format)
+ * Choose which dictionary is used for word lookups, which frequency dictionary orders them and which pitch accent
+ * dictionary adds accents, and import personal dictionaries (Yomitan format). The three sections work alike: a list
+ * to choose from (frequency and pitch accent also have "None"), delete buttons, and an import button.
  */
 class DictionariesActivity : AppCompatActivity()
 {
     private lateinit var mBinding: ActivityDictionariesBinding
     private val mExecutor = Executors.newSingleThreadExecutor()
+
+    /** One section of the screen; [kind] is null for the word dictionaries */
+    private inner class Section(val kind: MetaKind?, @StringRes val title: Int, val info: () -> InfoContent, val importButtonText: Int)
+    {
+        val binding: SectionDictionaryBinding = SectionDictionaryBinding.inflate(layoutInflater, mBinding.sections, false)
+        var importButton = binding.sectionImport
+    }
+
+    private class InfoContent(val title: Int, val message: CharSequence, val links: List<Pair<Int, String>> = emptyList())
+
+    private val mSections = ArrayList<Section>()
 
     private val mPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) importDictionary(uri, false, false)
@@ -57,22 +74,40 @@ class DictionariesActivity : AppCompatActivity()
         }
 
         mBinding.toolbar.setNavigationOnClickListener { finish() }
-        mBinding.importButton.setOnClickListener { mPicker.launch(arrayOf("*/*")) }
-        mBinding.importPitchButton.setOnClickListener { mPitchPicker.launch(arrayOf("*/*")) }
-        mBinding.deletePitchButton.setOnClickListener { deletePitch() }
-        mBinding.importFrequencyButton.setOnClickListener { mFrequencyPicker.launch(arrayOf("*/*")) }
-        mBinding.deleteFrequencyButton.setOnClickListener { deleteFrequency() }
-        mBinding.getJmdictButton.setOnClickListener { openLink(JMDICT_RELEASES_URL) }
-        mBinding.moreDictionariesButton.setOnClickListener { openLink(YOMITAN_DICTIONARIES_URL) }
 
-        mBinding.pitchSwitch.isChecked = PitchAccent.isEnabled(this)
-        mBinding.pitchRow.setOnClickListener {
-            val enabled = !mBinding.pitchSwitch.isChecked
-            mBinding.pitchSwitch.isChecked = enabled
-            PitchAccent.setEnabled(this, enabled)
-        }
+        addSection(Section(null, R.string.dictionary_select_header,
+                { InfoContent(R.string.dictionary_select_header, TextUtils.concat(getText(R.string.dictionary_update_text), "\n\n", getText(R.string.dictionary_format_text)),
+                        listOf(Pair(R.string.dictionary_get_jmdict, JMDICT_RELEASES_URL), Pair(R.string.dictionary_more, YOMITAN_DICTIONARIES_URL))) },
+                R.string.dictionary_import), mPicker)
+        addSection(Section(MetaKind.FREQUENCY, R.string.frequency_header,
+                { InfoContent(R.string.frequency_header, getText(R.string.frequency_help)) },
+                R.string.frequency_import), mFrequencyPicker)
+        addSection(Section(MetaKind.PITCH, R.string.pitch_header,
+                { InfoContent(R.string.pitch_header, getText(R.string.pitch_help)) },
+                R.string.pitch_import), mPitchPicker)
 
         refresh()
+    }
+
+    private fun addSection(section: Section, picker: androidx.activity.result.ActivityResultLauncher<Array<String>>)
+    {
+        section.binding.sectionTitle.setText(section.title)
+        section.binding.sectionImport.setText(section.importButtonText)
+        section.binding.sectionImport.setOnClickListener { picker.launch(arrayOf("*/*")) }
+        section.binding.sectionInfo.setOnClickListener { showInfo(section.info()) }
+        mBinding.sections.addView(section.binding.root)
+        mSections.add(section)
+    }
+
+    private fun showInfo(content: InfoContent)
+    {
+        val dialog = MaterialAlertDialogBuilder(this)
+                .setTitle(content.title)
+                .setMessage(content.message)
+                .setNegativeButton(R.string.dictionary_close, null)
+        if (content.links.isNotEmpty()) dialog.setPositiveButton(content.links[0].first) { _, _ -> openLink(content.links[0].second) }
+        if (content.links.size > 1) dialog.setNeutralButton(content.links[1].first) { _, _ -> openLink(content.links[1].second) }
+        dialog.show()
     }
 
     override fun onDestroy()
@@ -81,23 +116,26 @@ class DictionariesActivity : AppCompatActivity()
         super.onDestroy()
     }
 
-    /** Reads the dictionary list off the main thread, then shows it */
+    /** Reads the lists off the main thread, then shows them */
     private fun refresh()
     {
         try
         {
             mExecutor.execute {
-                val selected = DictionarySelection.get(this)
-                val dictionaries = UserDictionaryStore.get(this).list()
-                val pitch = UserDictionaryStore.get(this).pitchSource()
-                val frequency = UserDictionaryStore.get(this).frequencySource()
+                val store = UserDictionaryStore.get(this)
+                val selectedWords = DictionarySelection.get(this)
+                val words = store.list()
+                val frequency = store.metaList(MetaKind.FREQUENCY)
+                val selectedFrequency = MetaSelection.get(this, MetaKind.FREQUENCY)
+                val pitch = store.metaList(MetaKind.PITCH)
+                val selectedPitch = MetaSelection.get(this, MetaKind.PITCH)
 
                 runOnUiThread {
                     if (!isDestroyed)
                     {
-                        showDictionaries(selected, dictionaries)
-                        showPitch(pitch)
-                        showFrequency(frequency)
+                        showWords(mSections[0], selectedWords, words)
+                        showMeta(mSections[1], selectedFrequency, frequency)
+                        showMeta(mSections[2], selectedPitch, pitch)
                     }
                 }
             }
@@ -108,88 +146,82 @@ class DictionariesActivity : AppCompatActivity()
         }
     }
 
-    private fun showPitch(pitch: UserDictionary?)
+    private fun showWords(section: Section, selected: Long, dictionaries: List<UserDictionary>)
     {
-        mBinding.pitchStatus.text = if (pitch == null)
-            getString(R.string.pitch_none)
-        else
-            getString(R.string.pitch_imported, pitch.title, NumberFormat.getIntegerInstance().format(pitch.entries))
-        mBinding.deletePitchButton.visibility = if (pitch == null) View.GONE else View.VISIBLE
-    }
+        section.binding.sectionList.removeAllViews()
 
-    private fun showFrequency(frequency: UserDictionary?)
-    {
-        mBinding.frequencyStatus.text = if (frequency == null)
-            getString(R.string.frequency_none)
-        else
-            getString(R.string.frequency_imported, frequency.title, NumberFormat.getIntegerInstance().format(frequency.entries))
-        mBinding.deleteFrequencyButton.visibility = if (frequency == null) View.GONE else View.VISIBLE
-    }
+        addRow(section, getString(R.string.dictionary_builtin_title), getString(R.string.dictionary_builtin_subtitle), selected == DictionarySelection.BUILT_IN, false,
+                { DictionarySelection.set(this, DictionarySelection.BUILT_IN) }, {})
 
-    private fun deleteFrequency()
-    {
-        mExecutor.execute {
-            UserDictionaryStore.get(this).deleteFrequency()
-            runOnUiThread { refresh() }
-        }
-    }
-
-    private fun deletePitch()
-    {
-        mExecutor.execute {
-            UserDictionaryStore.get(this).deletePitch()
-            runOnUiThread { refresh() }
-        }
-    }
-
-    private fun showDictionaries(selected: Long, dictionaries: List<UserDictionary>)
-    {
-        val list = mBinding.dictionaryList
-        list.removeAllViews()
-
-        addRow(DictionarySelection.BUILT_IN, getString(R.string.dictionary_builtin_title), getString(R.string.dictionary_builtin_subtitle), selected == DictionarySelection.BUILT_IN, false)
-
-        val numbers = NumberFormat.getIntegerInstance()
         for (dictionary in dictionaries)
         {
-            val count = numbers.format(dictionary.entries)
-            val subtitle = if (dictionary.revision.isEmpty())
-                getString(R.string.dictionary_subtitle_format, count)
-            else
-                getString(R.string.dictionary_subtitle_revision_format, count, dictionary.revision)
-
-            addRow(dictionary.id, dictionary.title, subtitle, selected == dictionary.id, true)
+            addRow(section, dictionary.title, subtitle(dictionary), selected == dictionary.id, true,
+                    { DictionarySelection.set(this, dictionary.id) },
+                    {
+                        UserDictionaryStore.get(this).delete(dictionary.id)
+                        if (DictionarySelection.get(this) == dictionary.id) DictionarySelection.set(this, DictionarySelection.BUILT_IN)
+                    })
         }
     }
 
-    private fun addRow(id: Long, title: String, subtitle: String, selected: Boolean, deletable: Boolean)
+    /** Frequency and pitch accent: "None" first, then what has been imported */
+    private fun showMeta(section: Section, selected: Long, dictionaries: List<UserDictionary>)
     {
-        val row = ItemDictionaryBinding.inflate(LayoutInflater.from(this), mBinding.dictionaryList, false)
+        val kind = section.kind ?: return
+        section.binding.sectionList.removeAllViews()
+
+        addRow(section, getString(R.string.dictionary_none), "", selected == MetaSelection.NONE, false, { MetaSelection.set(this, kind, MetaSelection.NONE) }, {})
+
+        for (dictionary in dictionaries)
+        {
+            addRow(section, dictionary.title, subtitle(dictionary), selected == dictionary.id, true,
+                    { MetaSelection.set(this, kind, dictionary.id) },
+                    {
+                        UserDictionaryStore.get(this).deleteMeta(kind, dictionary.id)
+                        if (MetaSelection.get(this, kind) == dictionary.id) MetaSelection.set(this, kind, MetaSelection.NONE)
+                    })
+        }
+    }
+
+    private fun subtitle(dictionary: UserDictionary): String
+    {
+        val count = NumberFormat.getIntegerInstance().format(dictionary.entries)
+        return if (dictionary.revision.isEmpty())
+            getString(R.string.dictionary_subtitle_format, count)
+        else
+            getString(R.string.dictionary_subtitle_revision_format, count, dictionary.revision)
+    }
+
+    /** [onSelect] and [onDelete] change the stored state; they run off the main thread, and the screen is refreshed after */
+    private fun addRow(section: Section, title: String, subtitle: String, selected: Boolean, deletable: Boolean, onSelect: () -> Unit, onDelete: () -> Unit)
+    {
+        val list = section.binding.sectionList
+        val row = ItemDictionaryBinding.inflate(LayoutInflater.from(this), list, false)
         row.dictionaryTitle.text = title
         row.dictionarySubtitle.text = subtitle
+        row.dictionarySubtitle.visibility = if (subtitle.isEmpty()) View.GONE else View.VISIBLE
         row.dictionaryRadio.isChecked = selected
         row.dictionaryDelete.visibility = if (deletable) View.VISIBLE else View.GONE
 
         row.root.setOnClickListener {
-            DictionarySelection.set(this, id)
-            refresh()
+            mExecutor.execute {
+                onSelect()
+                runOnUiThread { refresh() }
+            }
         }
-        row.dictionaryDelete.setOnClickListener { confirmDelete(id, title) }
+        row.dictionaryDelete.setOnClickListener { confirmDelete(title, onDelete) }
 
-        mBinding.dictionaryList.addView(row.root)
+        list.addView(row.root)
     }
 
-    private fun confirmDelete(id: Long, title: String)
+    private fun confirmDelete(title: String, delete: () -> Unit)
     {
         MaterialAlertDialogBuilder(this)
                 .setMessage(getString(R.string.dictionary_delete_confirm, title))
                 .setPositiveButton(R.string.dictionary_delete_action) { _, _ ->
                     mExecutor.execute {
-                        UserDictionaryStore.get(this).delete(id)
-                        runOnUiThread {
-                            if (DictionarySelection.get(this) == id) DictionarySelection.set(this, DictionarySelection.BUILT_IN)
-                            refresh()
-                        }
+                        delete()
+                        runOnUiThread { refresh() }
                     }
                 }
                 .setNegativeButton(R.string.dictionary_cancel, null)
@@ -232,9 +264,7 @@ class DictionariesActivity : AppCompatActivity()
         val progress = DictionaryImport.progress
         val running = progress != null
 
-        mBinding.importButton.isEnabled = !running
-        mBinding.importPitchButton.isEnabled = !running
-        mBinding.importFrequencyButton.isEnabled = !running
+        for (section in mSections) section.importButton.isEnabled = !running
         mBinding.importProgress.visibility = if (running) View.VISIBLE else View.GONE
         mBinding.importStatus.visibility = if (running) View.VISIBLE else View.GONE
 

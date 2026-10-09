@@ -88,21 +88,17 @@ constructor(private val mSearchInfo: SearchInfo, private val mSearchJmTaskDone: 
 
         val matchedEntries = getMatchedEntries(words, deinflections, entries)
 
-        // Frequency comes from the frequency dictionary the user imported, whichever word dictionary is selected
-        val frequencySource = UserDictionaryStore.get(mContext).frequencySource()
-        if (frequencySource != null)
-        {
-            val ranks = WordFrequency.get(mContext).ranks(matchedEntries.map { it.entry }.filter { it.dictionary != DB_KANJIDICT_NAME })
+        // Frequency comes from the frequency dictionary the user selected, whichever word dictionary is selected
+        WordFrequency.get(mContext)?.let { wordFrequency ->
+            val ranks = wordFrequency.ranks(matchedEntries.map { it.entry }.filter { it.dictionary != DB_KANJIDICT_NAME })
             for (result in matchedEntries) result.frequency = ranks[result.entry]
         }
 
         val rankedEntries = rankResults(matchedEntries)
         loadMeanings(db, rankedEntries)
 
-        // Pitch accent comes from the pitch accent dictionary the user imported, whichever word dictionary is selected
-        if (PitchAccent.isEnabled(mContext))
-        {
-            val pitchAccent = PitchAccent.get(mContext)
+        // Pitch accent comes from the pitch accent dictionary the user selected, whichever word dictionary is selected
+        PitchAccent.get(mContext)?.let { pitchAccent ->
             for (result in rankedEntries)
             {
                 if (result.entry.dictionary != DB_KANJIDICT_NAME) result.pitch = pitchAccent.lookup(result.entry.kanji, result.entry.readings)

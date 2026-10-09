@@ -15,6 +15,8 @@ import androidx.core.app.ServiceCompat
 import io.github.atmstudent.kakukaku.Dictionary.DictionaryFormatException
 import io.github.atmstudent.kakukaku.Dictionary.DictionaryImport
 import io.github.atmstudent.kakukaku.Dictionary.DictionarySelection
+import io.github.atmstudent.kakukaku.Dictionary.MetaKind
+import io.github.atmstudent.kakukaku.Dictionary.MetaSelection
 import io.github.atmstudent.kakukaku.Dictionary.UserDictionaryStore
 import java.io.IOException
 import java.text.NumberFormat
@@ -80,11 +82,13 @@ class DictionaryImportService : Service()
             if (frequency)
             {
                 val result = UserDictionaryStore.get(this).importFrequency(open, onProgress, onFinishing)
+                MetaSelection.set(this, MetaKind.FREQUENCY, result.id)
                 message = getString(R.string.frequency_import_done, result.title, numbers.format(result.entries))
             }
             else if (pitch)
             {
                 val result = UserDictionaryStore.get(this).importPitch(open, onProgress, onFinishing)
+                MetaSelection.set(this, MetaKind.PITCH, result.id)
                 message = getString(R.string.pitch_import_done, result.title, numbers.format(result.entries))
             }
             else

@@ -4,10 +4,12 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import android.database.sqlite.SQLiteStatement
 import android.util.Log
 import io.github.atmstudent.kakukaku.DB_SPLIT_CHAR
 import io.github.atmstudent.kakukaku.Database.JmDictDatabase.Models.EntryOptimized
 import io.github.atmstudent.kakukaku.KAKUKAKU_PREF_FILE
+import io.github.atmstudent.kakukaku.KAKUKAKU_PREF_PITCH_ACCENT
 import io.github.atmstudent.kakukaku.KAKUKAKU_PREF_SELECTED_DICTIONARY
 import io.github.atmstudent.kakukaku.Search.JmTask
 import io.github.atmstudent.kakukaku.toKatakana
@@ -17,11 +19,18 @@ data class UserDictionary(val id: Long, val title: String, val revision: String,
 
 data class ImportResult(val dictionary: UserDictionary, val replacedIds: List<Long>)
 
+/** The two kinds of data that come with a word dictionary: pitch accent and word frequency. Each can hold several dictionaries. */
+enum class MetaKind(val table: String, val sources: String, val oldSources: String, val index: String, val valueColumn: String, val valueType: String)
+{
+    PITCH("pitch", "pitch_dicts", "pitch_source", "pitch_lookup", "positions", "TEXT"),
+    FREQUENCY("freq", "freq_dicts", "freq_source", "freq_lookup", "rank", "REAL")
+}
+
 /**
  * Dictionaries imported by the user (Yomitan format). Kept in their own database so the bundled
  * dictionary is never touched.
  */
-class UserDictionaryStore private constructor(context: Context) : SQLiteOpenHelper(context.applicationContext, "user_dictionaries.db", null, 4)
+class UserDictionaryStore private constructor(context: Context) : SQLiteOpenHelper(context.applicationContext, "user_dictionaries.db", null, 5)
 {
     init
     {
@@ -36,47 +45,62 @@ class UserDictionaryStore private constructor(context: Context) : SQLiteOpenHelp
         db.execSQL("CREATE TABLE terms (dict_id INTEGER NOT NULL, term TEXT NOT NULL, reading TEXT NOT NULL, tags TEXT NOT NULL, rules TEXT NOT NULL, score INTEGER NOT NULL, sequence INTEGER NOT NULL, glossary TEXT NOT NULL)")
         db.execSQL("CREATE INDEX terms_lookup ON terms (dict_id, term)")
         db.execSQL("CREATE INDEX terms_reading ON terms (dict_id, reading)")
-        createPitchTable(db)
-        createFrequencyTable(db)
+        for (kind in MetaKind.values()) createMetaTables(db, kind)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int)
     {
-        if (oldVersion < 2) createPitchTable(db)
         if (oldVersion < 3) db.execSQL("CREATE INDEX IF NOT EXISTS terms_reading ON terms (dict_id, reading)")
-        if (oldVersion < 4) createFrequencyTable(db)
-    }
-
-    private fun createPitchTable(db: SQLiteDatabase)
-    {
-        db.execSQL("CREATE TABLE pitch (term TEXT NOT NULL, reading TEXT NOT NULL, positions TEXT NOT NULL)")
-        db.execSQL("CREATE TABLE pitch_source (title TEXT NOT NULL, entries INTEGER NOT NULL)")
-        db.execSQL("CREATE INDEX pitch_lookup ON pitch (term)")
-    }
-
-    private fun createFrequencyTable(db: SQLiteDatabase)
-    {
-        db.execSQL("CREATE TABLE freq (term TEXT NOT NULL, reading TEXT NOT NULL, rank REAL NOT NULL)")
-        db.execSQL("CREATE TABLE freq_source (title TEXT NOT NULL, entries INTEGER NOT NULL)")
-        db.execSQL("CREATE INDEX freq_lookup ON freq (term)")
-    }
-
-    /** The imported frequency dictionary, or null if there is none */
-    fun frequencySource(): UserDictionary?
-    {
-        readableDatabase.rawQuery("SELECT title, entries FROM freq_source", null).use { c ->
-            return if (c.moveToFirst()) UserDictionary(FREQUENCY_ID, c.getString(0), "", c.getInt(1)) else null
+        if (oldVersion < 5)
+        {
+            // Until version 5 there was one pitch and one frequency dictionary (versions 2 and 4); now each is a list
+            for (kind in MetaKind.values()) upgradeMetaTables(db, kind)
         }
     }
 
-    fun deleteFrequency()
+    private fun createMetaTables(db: SQLiteDatabase, kind: MetaKind)
+    {
+        db.execSQL("CREATE TABLE ${kind.table} (dict_id INTEGER NOT NULL, term TEXT NOT NULL, reading TEXT NOT NULL, ${kind.valueColumn} ${kind.valueType} NOT NULL)")
+        db.execSQL("CREATE TABLE ${kind.sources} (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, entries INTEGER NOT NULL)")
+        db.execSQL("CREATE INDEX ${kind.index} ON ${kind.table} (dict_id, term)")
+    }
+
+    /** Keeps what was imported: the single old dictionary becomes the one with id 1 */
+    private fun upgradeMetaTables(db: SQLiteDatabase, kind: MetaKind)
+    {
+        val hadOld = db.rawQuery("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", arrayOf(kind.oldSources)).use { it.moveToFirst() }
+        if (!hadOld)
+        {
+            createMetaTables(db, kind)
+            return
+        }
+
+        db.execSQL("ALTER TABLE ${kind.table} ADD COLUMN dict_id INTEGER NOT NULL DEFAULT 1")
+        db.execSQL("CREATE TABLE ${kind.sources} (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, entries INTEGER NOT NULL)")
+        db.execSQL("INSERT INTO ${kind.sources} (id, title, entries) SELECT 1, title, entries FROM ${kind.oldSources}")
+        db.execSQL("DROP TABLE ${kind.oldSources}")
+        db.execSQL("DROP INDEX IF EXISTS ${kind.index}")
+        db.execSQL("CREATE INDEX ${kind.index} ON ${kind.table} (dict_id, term)")
+    }
+
+    /** The imported pitch accent or frequency dictionaries */
+    fun metaList(kind: MetaKind): List<UserDictionary>
+    {
+        val result = ArrayList<UserDictionary>()
+        readableDatabase.rawQuery("SELECT id, title, entries FROM ${kind.sources} ORDER BY title COLLATE NOCASE", null).use { c ->
+            while (c.moveToNext()) result.add(UserDictionary(c.getLong(0), c.getString(1), "", c.getInt(2)))
+        }
+        return result
+    }
+
+    fun deleteMeta(kind: MetaKind, id: Long)
     {
         val db = writableDatabase
         db.beginTransaction()
         try
         {
-            db.delete("freq", null, null)
-            db.delete("freq_source", null, null)
+            db.delete(kind.table, "dict_id = ?", arrayOf(id.toString()))
+            db.delete(kind.sources, "id = ?", arrayOf(id.toString()))
             db.setTransactionSuccessful()
         }
         finally
@@ -85,140 +109,109 @@ class UserDictionaryStore private constructor(context: Context) : SQLiteOpenHelp
         }
     }
 
-    /** The ranks stored for each of [terms], as pairs of hiragana reading (empty if none was given) and rank */
-    fun frequenciesFor(terms: Collection<String>): Map<String, List<Pair<String, Double>>>
+    /** The ranks [dictId] stores for each of [terms], as pairs of hiragana reading (empty if none was given) and rank */
+    fun frequenciesFor(dictId: Long, terms: Collection<String>): Map<String, List<Pair<String, Double>>>
     {
         val result = HashMap<String, MutableList<Pair<String, Double>>>()
         for (chunk in terms.distinct().chunked(JmTask.SQL_CHUNK))
         {
-            readableDatabase.rawQuery("SELECT term, reading, rank FROM freq WHERE term IN (${JmTask.placeholders(chunk.size)})", chunk.toTypedArray()).use { c ->
+            val args = arrayOf(dictId.toString()) + chunk.toTypedArray()
+            readableDatabase.rawQuery("SELECT term, reading, rank FROM freq WHERE dict_id = ? AND term IN (${JmTask.placeholders(chunk.size)})", args).use { c ->
                 while (c.moveToNext()) result.getOrPut(c.getString(0)) { ArrayList() }.add(Pair(c.getString(1), c.getDouble(2)))
             }
         }
         return result
     }
 
-    /**
-     * Imports a Yomitan frequency zip, replacing the frequency dictionary that was there. One transaction,
-     * so a failed import leaves the old one in place.
-     */
-    fun importFrequency(openStream: () -> InputStream, onProgress: (entries: Int, bytesRead: Long) -> Unit, onFinishing: () -> Unit = {}): UserDictionary
-    {
-        val db = writableDatabase
-        db.beginTransaction()
-        try
-        {
-            db.execSQL("DROP INDEX IF EXISTS freq_lookup")
-            db.delete("freq", null, null)
-            db.delete("freq_source", null, null)
-
-            val statement = db.compileStatement("INSERT INTO freq (term, reading, rank) VALUES (?, ?, ?)")
-            var imported = 0
-            var bytesRead = 0L
-
-            val (meta, count) = YomitanParser.parseFrequency(openStream, { bytesRead = it }) { rows ->
-                for (row in rows)
-                {
-                    statement.clearBindings()
-                    statement.bindString(1, row.term)
-                    statement.bindString(2, row.reading)
-                    statement.bindDouble(3, row.rank)
-                    statement.executeInsert()
-                }
-                imported += rows.size
-                onProgress(imported, bytesRead)
-            }
-
-            val source = ContentValues()
-            source.put("title", meta.title)
-            source.put("entries", count)
-            db.insertOrThrow("freq_source", null, source)
-
-            onFinishing()
-            db.execSQL("CREATE INDEX freq_lookup ON freq (term)")
-            db.setTransactionSuccessful()
-            return UserDictionary(FREQUENCY_ID, meta.title, "", count)
-        }
-        finally
-        {
-            db.endTransaction()
-        }
-    }
-
-    /** The imported pitch accent dictionary, or null if there is none */
-    fun pitchSource(): UserDictionary?
-    {
-        readableDatabase.rawQuery("SELECT title, entries FROM pitch_source", null).use { c ->
-            return if (c.moveToFirst()) UserDictionary(PITCH_ID, c.getString(0), "", c.getInt(1)) else null
-        }
-    }
-
-    fun deletePitch()
-    {
-        val db = writableDatabase
-        db.beginTransaction()
-        try
-        {
-            db.delete("pitch", null, null)
-            db.delete("pitch_source", null, null)
-            db.setTransactionSuccessful()
-        }
-        finally
-        {
-            db.endTransaction()
-        }
-    }
-
-    /** Downstep positions stored for [term], as pairs of hiragana reading and comma separated positions */
-    fun pitchFor(term: String): List<Pair<String, String>>
+    /** Downstep positions [dictId] stores for [term], as pairs of hiragana reading and comma separated positions */
+    fun pitchFor(dictId: Long, term: String): List<Pair<String, String>>
     {
         val result = ArrayList<Pair<String, String>>()
-        readableDatabase.rawQuery("SELECT reading, positions FROM pitch WHERE term = ?", arrayOf(term)).use { c ->
+        readableDatabase.rawQuery("SELECT reading, positions FROM pitch WHERE dict_id = ? AND term = ?", arrayOf(dictId.toString(), term)).use { c ->
             while (c.moveToNext()) result.add(Pair(c.getString(0), c.getString(1)))
         }
         return result
     }
 
-    /**
-     * Imports a Yomitan pitch accent zip, replacing the pitch accent dictionary that was there. One
-     * transaction, so a failed import leaves the old one in place.
-     */
+    /** Imports a Yomitan frequency zip. One transaction, so a failed import leaves nothing behind. A copy with the same title is replaced. */
+    fun importFrequency(openStream: () -> InputStream, onProgress: (entries: Int, bytesRead: Long) -> Unit, onFinishing: () -> Unit = {}): UserDictionary
+    {
+        return importMeta<ImportedFrequency>(MetaKind.FREQUENCY, openStream, onProgress, onFinishing,
+                { onBytes, onRows -> YomitanParser.parseFrequency(openStream, onBytes, onRows) },
+                { statement, row ->
+                    statement.bindString(2, row.term)
+                    statement.bindString(3, row.reading)
+                    statement.bindDouble(4, row.rank)
+                })
+    }
+
+    /** Imports a Yomitan pitch accent zip, like [importFrequency] */
     fun importPitch(openStream: () -> InputStream, onProgress: (entries: Int, bytesRead: Long) -> Unit, onFinishing: () -> Unit = {}): UserDictionary
+    {
+        return importMeta<ImportedPitch>(MetaKind.PITCH, openStream, onProgress, onFinishing,
+                { onBytes, onRows -> YomitanParser.parsePitch(openStream, onBytes, onRows) },
+                { statement, row ->
+                    statement.bindString(2, row.term)
+                    statement.bindString(3, row.reading)
+                    statement.bindString(4, row.positions)
+                })
+    }
+
+    private fun <T> importMeta(kind: MetaKind, openStream: () -> InputStream, onProgress: (entries: Int, bytesRead: Long) -> Unit, onFinishing: () -> Unit,
+                               parse: ((Long) -> Unit, (List<T>) -> Unit) -> Pair<DictionaryMeta, Int>,
+                               bind: (SQLiteStatement, T) -> Unit): UserDictionary
     {
         val db = writableDatabase
         db.beginTransaction()
         try
         {
-            db.execSQL("DROP INDEX IF EXISTS pitch_lookup")
-            db.delete("pitch", null, null)
-            db.delete("pitch_source", null, null)
+            db.execSQL("DROP INDEX IF EXISTS ${kind.index}")
 
-            val statement = db.compileStatement("INSERT INTO pitch (term, reading, positions) VALUES (?, ?, ?)")
+            // Reads the title first so an unusable file fails before anything is written
+            val created = ContentValues()
+            created.put("title", YomitanParser.readIndex(openStream).title)
+            created.put("entries", 0)
+            val dictId = db.insertOrThrow(kind.sources, null, created)
+
+            val statement = db.compileStatement("INSERT INTO ${kind.table} (dict_id, term, reading, ${kind.valueColumn}) VALUES (?, ?, ?, ?)")
             var imported = 0
             var bytesRead = 0L
 
-            val (meta, count) = YomitanParser.parsePitch(openStream, { bytesRead = it }) { rows ->
+            val (meta, count) = parse({ bytesRead = it }) { rows ->
                 for (row in rows)
                 {
                     statement.clearBindings()
-                    statement.bindString(1, row.term)
-                    statement.bindString(2, row.reading)
-                    statement.bindString(3, row.positions)
+                    statement.bindLong(1, dictId)
+                    bind(statement, row)
                     statement.executeInsert()
                 }
                 imported += rows.size
                 onProgress(imported, bytesRead)
             }
 
-            val source = ContentValues()
-            source.put("title", meta.title)
-            source.put("entries", count)
-            db.insertOrThrow("pitch_source", null, source)
+            val update = ContentValues()
+            update.put("title", meta.title)
+            update.put("entries", count)
+            db.update(kind.sources, update, "id = ?", arrayOf(dictId.toString()))
+
+            // Replace older copies of the same dictionary
+            val replaced = ArrayList<Long>()
+            db.rawQuery("SELECT id, title FROM ${kind.sources} WHERE id != ?", arrayOf(dictId.toString())).use { c ->
+                while (c.moveToNext())
+                {
+                    if (sameDictionary(c.getString(1), meta.title)) replaced.add(c.getLong(0))
+                }
+            }
+            for (old in replaced)
+            {
+                db.delete(kind.table, "dict_id = ?", arrayOf(old.toString()))
+                db.delete(kind.sources, "id = ?", arrayOf(old.toString()))
+            }
 
             onFinishing()
-            db.execSQL("CREATE INDEX pitch_lookup ON pitch (term)")
+            db.execSQL("CREATE INDEX ${kind.index} ON ${kind.table} (dict_id, term)")
             db.setTransactionSuccessful()
-            return UserDictionary(PITCH_ID, meta.title, "", count)
+            return UserDictionary(dictId, meta.title, "", count)
         }
         finally
         {
@@ -423,8 +416,6 @@ class UserDictionaryStore private constructor(context: Context) : SQLiteOpenHelp
     companion object
     {
         private const val TAG = "UserDictionaryStore"
-        const val PITCH_ID = -2L
-        const val FREQUENCY_ID = -3L
 
         @Volatile
         private var instance: UserDictionaryStore? = null
@@ -455,5 +446,40 @@ object DictionarySelection
     fun set(context: Context, id: Long)
     {
         context.getSharedPreferences(KAKUKAKU_PREF_FILE, Context.MODE_PRIVATE).edit().putLong(KAKUKAKU_PREF_SELECTED_DICTIONARY, id).apply()
+    }
+}
+
+/** Which pitch accent or frequency dictionary is in use; [NONE] switches the feature off */
+object MetaSelection
+{
+    const val NONE = 0L
+
+    private fun key(kind: MetaKind) = when (kind)
+    {
+        MetaKind.PITCH -> "SelectedPitch"
+        MetaKind.FREQUENCY -> "SelectedFrequency"
+    }
+
+    fun get(context: Context, kind: MetaKind): Long
+    {
+        val prefs = context.getSharedPreferences(KAKUKAKU_PREF_FILE, Context.MODE_PRIVATE)
+        val list = UserDictionaryStore.get(context).metaList(kind)
+
+        if (!prefs.contains(key(kind)))
+        {
+            // Nothing chosen yet. Before there were several, the one imported dictionary was always in use (pitch accent
+            // unless its switch was off), so carry on with it
+            if (kind == MetaKind.PITCH && !prefs.getBoolean(KAKUKAKU_PREF_PITCH_ACCENT, true)) return NONE
+            return list.firstOrNull()?.id ?: NONE
+        }
+
+        // Fall back to none if the chosen dictionary has been deleted
+        val id = prefs.getLong(key(kind), NONE)
+        return if (id == NONE || list.any { it.id == id }) id else NONE
+    }
+
+    fun set(context: Context, kind: MetaKind, id: Long)
+    {
+        context.getSharedPreferences(KAKUKAKU_PREF_FILE, Context.MODE_PRIVATE).edit().putLong(key(kind), id).apply()
     }
 }

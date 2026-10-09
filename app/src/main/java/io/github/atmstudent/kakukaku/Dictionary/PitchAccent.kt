@@ -1,15 +1,13 @@
 package io.github.atmstudent.kakukaku.Dictionary
 
 import android.content.Context
-import io.github.atmstudent.kakukaku.KAKUKAKU_PREF_FILE
-import io.github.atmstudent.kakukaku.KAKUKAKU_PREF_PITCH_ACCENT
 import io.github.atmstudent.kakukaku.toHiragana
 
 /**
- * The pitch accent dictionary the user has imported. It works alongside whichever word dictionary is selected:
+ * The selected pitch accent dictionary (imported by the user). It works alongside whichever word dictionary is selected:
  * the downstep positions of a word are shown after its reading, for example 猫 (ねこ) [1].
  */
-class PitchAccent private constructor(private val store: UserDictionaryStore)
+class PitchAccent private constructor(private val store: UserDictionaryStore, private val dictId: Long)
 {
     /**
      * Downstep positions of a word, formatted like "[1]" or "[1][0]" for words with several accents.
@@ -24,7 +22,7 @@ class PitchAccent private constructor(private val store: UserDictionaryStore)
                 .toSet()
 
         val positions = LinkedHashSet<String>()
-        for ((reading, stored) in store.pitchFor(term))
+        for ((reading, stored) in store.pitchFor(dictId, term))
         {
             if (reading in wanted) positions.addAll(stored.split(","))
         }
@@ -34,16 +32,11 @@ class PitchAccent private constructor(private val store: UserDictionaryStore)
 
     companion object
     {
-        fun get(context: Context): PitchAccent = PitchAccent(UserDictionaryStore.get(context))
-
-        fun isEnabled(context: Context): Boolean
+        /** The selected pitch accent dictionary, or null if none is selected */
+        fun get(context: Context): PitchAccent?
         {
-            return context.getSharedPreferences(KAKUKAKU_PREF_FILE, Context.MODE_PRIVATE).getBoolean(KAKUKAKU_PREF_PITCH_ACCENT, true)
-        }
-
-        fun setEnabled(context: Context, enabled: Boolean)
-        {
-            context.getSharedPreferences(KAKUKAKU_PREF_FILE, Context.MODE_PRIVATE).edit().putBoolean(KAKUKAKU_PREF_PITCH_ACCENT, enabled).apply()
+            val id = MetaSelection.get(context, MetaKind.PITCH)
+            return if (id == MetaSelection.NONE) null else PitchAccent(UserDictionaryStore.get(context), id)
         }
     }
 }
