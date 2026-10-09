@@ -15,17 +15,13 @@ Yes, it's vibecoded 😞
 <img src="docs/screenshots/settings.png" width="22%" alt="Settings screen">
 </p>
 
-## What is new compared with Kaku
+## What's new
 
-- Works on current Android.
-- ML Kit Japanese text recognition instead of Tesseract.
-- Material 3 design with light and dark mode and dynamic colour.
-- Dictionary import in Yomitan format.
-- Optional pitch accent from a dictionary you import yourself.
-- Optional word frequency from a dictionary you import yourself (JPDB or BCCWJ, for example): the more common word is shown first.
-- Furigana is stripped automatically from scanned and from selected text (switch in Settings).
-- Words are found by their kana reading (とても finds 迚も).
-- JMdict and KANJIDIC2 were updated.
+- Updated for modern Android: ML Kit Japanese text recognition instead of Tesseract; improved UX; Material 3 design with light and dark mode and dynamic colour.
+- Kana-only words are found.
+- Furigana are stripped automatically.
+- Import your own dictionary in Yomitan format, including pitch accent and frequency dictionaries.
+- Built-in JMdict and KANJIDIC2 were updated.
 
 ## Install
 
