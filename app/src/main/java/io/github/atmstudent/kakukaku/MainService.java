@@ -28,6 +28,8 @@ import androidx.core.content.ContextCompat;
 import androidx.core.app.NotificationCompat;
 import android.util.Log;
 import android.view.Display;
+import android.view.View;
+import android.widget.RemoteViews;
 import android.widget.Toast;
 
 import io.github.atmstudent.kakukaku.Interfaces.Stoppable;
@@ -221,8 +223,13 @@ public class MainService extends Service implements Stoppable {
         }
         else
         {
+            // Paused: no windows and no frames. The screen-sharing session stays, because Android 14+ cannot
+            // start another one without asking again; stopping it here would end the whole service.
             mWindowCoordinator.stopAllWindows();
-            stop();
+            if (mVirtualDisplay != null)
+            {
+                mVirtualDisplay.setSurface(null);
+            }
         }
 
         // Set notification text
@@ -324,52 +331,98 @@ public class MainService extends Service implements Stoppable {
     {
         String channelId = createNotificationChannel();
 
-        PendingIntent toggleShowHide = PendingIntent.getBroadcast(this, Constants.REQUEST_SERVICE_TOGGLE_SHOW_HIDE, new Intent(this, ToggleShowHideMainService.class), PendingIntent.FLAG_IMMUTABLE);
-        PendingIntent toggleImagePreview = PendingIntent.getBroadcast(this, Constants.REQUEST_SERVICE_TOGGLE_IMAGE_PREVIEW, new Intent(this, ToggleImagePreviewMainService.class), PendingIntent.FLAG_IMMUTABLE);
-        PendingIntent togglePageMode = PendingIntent.getBroadcast(this, Constants.REQUEST_SERVICE_TOGGLE_PAGE_MODE, new Intent(this, TogglePageModeMainService.class), PendingIntent.FLAG_IMMUTABLE);
-        PendingIntent toggleInstantMode = PendingIntent.getBroadcast(this, Constants.REQUEST_SERVICE_TOGGLE_INSTANT_MODE, new Intent(this, ToggleInstantModeMainService.class), PendingIntent.FLAG_IMMUTABLE);
-        PendingIntent closeMainService = PendingIntent.getBroadcast(this, Constants.REQUEST_SERVICE_SHUTDOWN, new Intent(this, CloseMainService.class), PendingIntent.FLAG_IMMUTABLE);
-
         Prefs prefs = KakuKakuTools.getPrefs(this);
+        boolean running = prefs.getShowHideSetting();
+        String title = getString(running ? R.string.notification_running : R.string.notification_paused);
 
-        String contentTitle = "KakuKaku";
-        switch (prefs.getTextDirectionSetting())
-        {
-            case AUTO:
-                contentTitle = "KakuKaku is determining text direction automatically";
-                break;
-            case VERTICAL:
-                contentTitle = "KakuKaku is reading text vertically";
-                break;
-            case HORIZONTAL:
-                contentTitle = "KakuKaku is reading text horizontally";
-                break;
-        }
+        Intent launchIntent = getPackageManager().getLaunchIntentForPackage(getPackageName());
+        PendingIntent open = PendingIntent.getActivity(this, 0, launchIntent, PendingIntent.FLAG_IMMUTABLE);
 
-        Notification n;
-        if (prefs.getShowHideSetting())
-        {
-            n = new NotificationCompat.Builder(this, channelId)
-                    .setSmallIcon(R.drawable.kakukaku_notification_icon)
-                    .setContentTitle(contentTitle)
-                    .setContentText(String.format("Instant mode %s, black and white filter %s", prefs.getInstantModeSetting() ? "on" : "off", prefs.getImageFilterSetting() ? "on" : "off"))
-                    .setContentIntent(toggleShowHide)
-                    .addAction(0, "Instant Mode", toggleInstantMode)
-                    .addAction(0, "Image Filter", toggleImagePreview)
-                    .addAction(0, "Shutdown", closeMainService)
-                    .build();
-        }
-        else {
-            n = new NotificationCompat.Builder(this, channelId)
-                    .setSmallIcon(R.drawable.kakukaku_notification_icon)
-                    .setContentTitle("KakuKaku is hidden and in power-saving mode")
-                    .setContentIntent(toggleShowHide)
-                    .build();
-        }
+        Notification n = new NotificationCompat.Builder(this, channelId)
+                .setSmallIcon(R.drawable.kakukaku_notification_icon)
+                .setContentTitle(title)
+                .setStyle(new NotificationCompat.DecoratedCustomViewStyle())
+                .setCustomContentView(buildControls(R.layout.notification_collapsed, prefs, running, title))
+                .setCustomBigContentView(buildControls(R.layout.notification_expanded, prefs, running, title))
+                .setContentIntent(open)
+                .setOnlyAlertOnce(true)
+                .build();
 
         n.flags = FLAG_ONGOING_EVENT | FLAG_FOREGROUND_SERVICE;
 
         return n;
+    }
+
+    private static final int[] NOTIFICATION_BUTTONS = {R.id.notif_btn1, R.id.notif_btn2, R.id.notif_btn3, R.id.notif_btn4};
+    private static final int[] NOTIFICATION_LABELS = {R.id.notif_btn1_label, R.id.notif_btn2_label, R.id.notif_btn3_label, R.id.notif_btn4_label};
+    private static final int[] NOTIFICATION_STATES = {R.id.notif_btn1_state, R.id.notif_btn2_state, R.id.notif_btn3_state, R.id.notif_btn4_state};
+
+    private PendingIntent broadcast(int requestCode, Class<?> receiver)
+    {
+        return PendingIntent.getBroadcast(this, requestCode, new Intent(this, receiver), PendingIntent.FLAG_IMMUTABLE);
+    }
+
+    /**
+     * The notification's buttons: Pause, the Instant mode and Image filter toggles (filled when on, outlined when
+     * off, with the state written out) and Shutdown. While paused only Resume and Shutdown are shown.
+     */
+    private RemoteViews buildControls(int layout, Prefs prefs, boolean running, String title)
+    {
+        RemoteViews views = new RemoteViews(getPackageName(), layout);
+        views.setTextViewText(R.id.notif_title, title);
+
+        PendingIntent toggleShowHide = broadcast(Constants.REQUEST_SERVICE_TOGGLE_SHOW_HIDE, ToggleShowHideMainService.class);
+        PendingIntent shutdown = broadcast(Constants.REQUEST_SERVICE_SHUTDOWN, CloseMainService.class);
+
+        if (running)
+        {
+            bindButton(views, 0, getString(R.string.notification_pause), null, false, toggleShowHide, null);
+            bindToggle(views, 1, getString(R.string.notification_instant), prefs.getInstantModeSetting(),
+                    broadcast(Constants.REQUEST_SERVICE_TOGGLE_INSTANT_MODE, ToggleInstantModeMainService.class), R.string.notification_instant_description);
+            bindToggle(views, 2, getString(R.string.notification_filter), prefs.getImageFilterSetting(),
+                    broadcast(Constants.REQUEST_SERVICE_TOGGLE_IMAGE_PREVIEW, ToggleImagePreviewMainService.class), R.string.notification_filter_description);
+        }
+        else
+        {
+            bindButton(views, 0, getString(R.string.notification_resume), null, true, toggleShowHide, null);
+            views.setViewVisibility(NOTIFICATION_BUTTONS[1], View.GONE);
+            views.setViewVisibility(NOTIFICATION_BUTTONS[2], View.GONE);
+        }
+        bindButton(views, 3, getString(R.string.notification_shutdown), null, false, shutdown, null);
+
+        return views;
+    }
+
+    private void bindToggle(RemoteViews views, int slot, String label, boolean on, PendingIntent click, int descriptionResource)
+    {
+        String state = getString(on ? R.string.notification_on : R.string.notification_off);
+        String description = getString(descriptionResource, state, getString(on ? R.string.notification_off : R.string.notification_on));
+        bindButton(views, slot, label, state, on, click, description);
+    }
+
+    /** [filled] buttons are drawn solid (a toggle that is on, or Resume); [state] is the On/Off text of a toggle, if it is one */
+    private void bindButton(RemoteViews views, int slot, String label, String state, boolean filled, PendingIntent click, String description)
+    {
+        int textColor = ContextCompat.getColor(this, filled ? R.color.md_on_primary : R.color.md_on_surface);
+
+        views.setViewVisibility(NOTIFICATION_BUTTONS[slot], View.VISIBLE);
+        views.setInt(NOTIFICATION_BUTTONS[slot], "setBackgroundResource", filled ? R.drawable.notif_button_on : R.drawable.notif_button_off);
+        views.setTextViewText(NOTIFICATION_LABELS[slot], label);
+        views.setTextColor(NOTIFICATION_LABELS[slot], textColor);
+
+        if (state != null)
+        {
+            views.setViewVisibility(NOTIFICATION_STATES[slot], View.VISIBLE);
+            views.setTextViewText(NOTIFICATION_STATES[slot], state);
+            views.setTextColor(NOTIFICATION_STATES[slot], textColor);
+        }
+        else
+        {
+            views.setViewVisibility(NOTIFICATION_STATES[slot], View.GONE);
+        }
+
+        views.setContentDescription(NOTIFICATION_BUTTONS[slot], description != null ? description : label);
+        views.setOnClickPendingIntent(NOTIFICATION_BUTTONS[slot], click);
     }
 
     private void createVirtualDisplay()

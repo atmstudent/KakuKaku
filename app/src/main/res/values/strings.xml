@@ -26,6 +26,17 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" AN
     <string name="dictionary_delete">Delete dictionary</string>
     <string name="dictionary_select_header">Dictionary used for lookups</string>
     <string name="dictionary_import">Import dictionary (.zip)</string>
+    <string name="notification_running">KakuKaku is running</string>
+    <string name="notification_paused">KakuKaku is paused</string>
+    <string name="notification_pause">Pause</string>
+    <string name="notification_resume">Resume</string>
+    <string name="notification_shutdown">Shutdown</string>
+    <string name="notification_instant">Instant</string>
+    <string name="notification_filter">Filter</string>
+    <string name="notification_on">On</string>
+    <string name="notification_off">Off</string>
+    <string name="notification_instant_description">Instant mode, %1$s. Tap to turn %2$s.</string>
+    <string name="notification_filter_description">Image filter, %1$s. Tap to turn %2$s.</string>
     <string name="furigana_title">Strip furigana</string>
     <string name="furigana_summary">Leaves out the small reading above kanji, in scanned and in selected text. Turn off if it ever removes real text.</string>
     <string name="pitch_header">Pitch accent</string>
