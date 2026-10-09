@@ -20,6 +20,7 @@ import android.media.projection.MediaProjectionManager;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import androidx.core.app.ServiceCompat;
 import androidx.core.content.ContextCompat;
 import android.util.Log;
@@ -147,6 +148,10 @@ public class MainService extends Service implements Stoppable {
 
     private static boolean isKakuKakuRunning = false;
 
+    // Counts the runs of the service, so a delayed task can tell that it belongs to an earlier one
+    private static int sSession = 0;
+    private static final Handler sMainHandler = new Handler(Looper.getMainLooper());
+
     private static final int VIRTUAL_DISPLAY_FLAGS = DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY | DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC;
 
     private IntentFilter mIntentFilter = new IntentFilter(Intent.ACTION_SCREEN_OFF);
@@ -193,6 +198,7 @@ public class MainService extends Service implements Stoppable {
         ContextCompat.registerReceiver(this, mScreenOffReceiver, mIntentFilter, ContextCompat.RECEIVER_NOT_EXPORTED);
 
         ServiceCompat.startForeground(this, ServiceNotification.NOTIFICATION_ID, ServiceNotification.INSTANCE.build(this, true), ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
+        sSession++;
         isKakuKakuRunning = true;
         notifyStateChanged();
     }
@@ -262,6 +268,24 @@ public class MainService extends Service implements Stoppable {
 
         stopForeground(STOP_FOREGROUND_DETACH);
         ServiceNotification.INSTANCE.post(this, false);
+
+        // Detaching makes the system take the foreground-service flag off the notification in its own time, and it can
+        // then re-post the old "running" notification over the one above. Post the paused one again once that is done.
+        final Context appContext = getApplicationContext();
+        final int session = sSession;
+        for (long delay : new long[]{300, 1200})
+        {
+            sMainHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    // Not when KakuKaku was started again in the meantime
+                    if (session == sSession && !isKakuKakuRunning) {
+                        ServiceNotification.INSTANCE.post(appContext, false);
+                    }
+                }
+            }, delay);
+        }
+
         stopSelf();
     }
 
