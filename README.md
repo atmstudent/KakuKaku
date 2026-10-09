@@ -6,6 +6,15 @@ KakuKaku is a **continuation of [Kaku](https://github.com/0xbad1d3a5/Kaku)** by 
 
 Yes, it's vibecoded 😞 
 
+## Screenshots
+
+<p>
+<img src="docs/screenshots/home.png" width="22%" alt="Home screen">
+<img src="docs/screenshots/scan.png" width="22%" alt="Scanned text with dictionary popup">
+<img src="docs/screenshots/dictionaries.png" width="22%" alt="Dictionaries screen">
+<img src="docs/screenshots/settings.png" width="22%" alt="Settings screen">
+</p>
+
 ## What is new compared with Kaku
 
 - Works on current Android.
@@ -14,7 +23,7 @@ Yes, it's vibecoded 😞
 - Dictionary import in Yomitan format.
 - Optional pitch accent from a dictionary you import yourself.
 - Optional word frequency from a dictionary you import yourself (JPDB or BCCWJ, for example): the more common word is shown first.
-- Furigana is stripped automatically from scanned and from selected text (switch on the home screen).
+- Furigana is stripped automatically from scanned and from selected text (switch in Settings).
 - Words are found by their kana reading (とても finds 迚も).
 - JMdict and KANJIDIC2 were updated.
 
@@ -24,7 +33,7 @@ Download `KakuKaku-<version>.apk` from the [Releases](../../releases) page and o
 
 If Android will not let you turn on "Display over other apps" (the switch is greyed out), it is restricting an app installed from outside a store. Open **Settings → Apps → KakuKaku**, tap the **⋮** menu in the top-right corner, choose **Allow restricted settings**, then try again. 
 
-Press **Start**, allow drawing over other apps and screen capture, drag the box over Japanese text and double-tap it. Tap a character in the popup to look up from there.
+Press **Start**, allow drawing over other apps and screen capture, drag the box over Japanese text and double-tap it. Tap a character in the popup to look up from there. The **Tutorial** in the app's ⋮ menu walks through it with annotated screenshots.
 
 ## Privacy
 
