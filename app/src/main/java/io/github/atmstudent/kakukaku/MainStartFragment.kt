@@ -61,6 +61,7 @@ class MainStartFragment : Fragment()
             {
                 R.id.menu_dictionaries -> startActivity(Intent(mainActivity, DictionariesActivity::class.java))
                 R.id.menu_settings -> startActivity(Intent(mainActivity, SettingsActivity::class.java))
+                R.id.menu_tutorial -> startActivity(Intent(mainActivity, TutorialActivity::class.java))
                 R.id.menu_about -> showAbout()
             }
             true

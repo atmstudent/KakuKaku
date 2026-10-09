@@ -54,6 +54,12 @@
             android:screenOrientation="portrait" />
 
         <activity
+            android:name=".TutorialActivity"
+            android:exported="false"
+            android:label="@string/tutorial_title"
+            android:screenOrientation="portrait" />
+
+        <activity
             android:name=".PassthroughActivity"
             android:label="KakuKaku"
             android:theme="@style/AppTheme.Invisible"
