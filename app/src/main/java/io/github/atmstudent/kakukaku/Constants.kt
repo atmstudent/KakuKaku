@@ -19,6 +19,7 @@ const val KAKUKAKU_PREF_SHOW_HIDE = "ShowHide"
 const val KAKUKAKU_PREF_IMAGE_FILTER = "ImageFilter"
 const val KAKUKAKU_PREF_TEXT_DIRECTION = "TextDirection"
 const val KAKUKAKU_PREF_INSTANT_MODE = "InstantMode"
+const val KAKUKAKU_PREF_STRIP_FURIGANA = "StripFurigana"
 
 const val EXTRA_PROJECTION_RESULT_CODE = "io.github.atmstudent.kakukaku.PROJECTION_RESULT_CODE"
 const val EXTRA_PROJECTION_RESULT_INTENT = "io.github.atmstudent.kakukaku.PROJECTION_RESULT_INTENT"

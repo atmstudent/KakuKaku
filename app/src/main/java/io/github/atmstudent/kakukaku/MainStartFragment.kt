@@ -16,6 +16,7 @@ import androidx.core.text.HtmlCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
+import io.github.atmstudent.kakukaku.Furigana.Furigana
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
@@ -63,6 +64,14 @@ class MainStartFragment : Fragment()
             }
             true
         }
+        val furiganaSwitch = rootView.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.furigana_switch)
+        furiganaSwitch.isChecked = Furigana.isEnabled(mainActivity)
+        rootView.findViewById<View>(R.id.furigana_row).setOnClickListener {
+            val enabled = !furiganaSwitch.isChecked
+            furiganaSwitch.isChecked = enabled
+            Furigana.setEnabled(mainActivity, enabled)
+        }
+
         startButton.setOnClickListener {
             if (MainService.IsRunning()) mainActivity.onStopPressed() else mainActivity.onStartPressed()
         }

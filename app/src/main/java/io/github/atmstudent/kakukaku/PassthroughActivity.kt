@@ -7,6 +7,8 @@ import android.view.Window
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationCompat
+import io.github.atmstudent.kakukaku.Furigana.Furigana
+import io.github.atmstudent.kakukaku.Search.BackgroundTask
 import io.github.atmstudent.kakukaku.Windows.InformationWindow
 import io.github.atmstudent.kakukaku.Windows.WindowCoordinator
 
@@ -46,11 +48,22 @@ class PassthroughActivity : AppCompatActivity()
 
         if (!processText.isNullOrEmpty())
         {
-            val windowCoordinator = WindowCoordinator(applicationContext)
-            val infoWindow = windowCoordinator.getWindow(WINDOW_INFO) as InformationWindow
+            // Taking the furigana out reads the dictionary, so it happens off the main thread; the popup does not need this activity
+            val appContext = applicationContext
+            val text: String = processText
+            object : BackgroundTask<String>()
+            {
+                override fun doInBackground(): String = try { Furigana.strip(appContext, text) } catch (e: Exception) { text }
 
-            infoWindow.setResult(processText)
-            infoWindow.show()
+                override fun onPostExecute(result: String)
+                {
+                    val windowCoordinator = WindowCoordinator(appContext)
+                    val infoWindow = windowCoordinator.getWindow(WINDOW_INFO) as InformationWindow
+
+                    infoWindow.setResult(result)
+                    infoWindow.show()
+                }
+            }.execute()
 
             finish()
         }

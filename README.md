@@ -14,6 +14,7 @@ Yes, it's vibecoded 😞
 - Dictionary import in Yomitan format.
 - Optional pitch accent from a dictionary you import yourself.
 - Optional word frequency from a dictionary you import yourself (JPDB or BCCWJ, for example): the more common word is shown first.
+- Furigana is stripped automatically from scanned and from selected text (switch on the home screen).
 - Words are found by their kana reading (とても finds 迚も).
 - JMdict and KANJIDIC2 were updated.
 

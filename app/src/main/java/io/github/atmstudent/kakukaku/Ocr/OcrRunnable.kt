@@ -18,6 +18,11 @@ import java.util.ArrayList
 import java.util.HashMap
 
 import io.github.atmstudent.kakukaku.*
+import io.github.atmstudent.kakukaku.Furigana.Furigana
+import io.github.atmstudent.kakukaku.Furigana.FuriganaFilter
+import io.github.atmstudent.kakukaku.Furigana.OcrBox
+import io.github.atmstudent.kakukaku.Furigana.OcrLineBox
+import io.github.atmstudent.kakukaku.Furigana.OcrSymbolBox
 import io.github.atmstudent.kakukaku.Interfaces.Stoppable
 import io.github.atmstudent.kakukaku.MainService
 import io.github.atmstudent.kakukaku.Windows.CaptureWindow
@@ -232,18 +237,21 @@ class OcrRunnable(context: Context, private var mCaptureWindow: CaptureWindow?) 
         val ocrChars = ArrayList<SquareCharOcr>()
         val displayData = DisplayDataOcr(bitmap, boxParams, ocrParams.instantMode, ocrChars)
 
-        for (block in visionText.textBlocks)
+        // Furigana is recognised as small lines of its own and would end up in the middle of the text
+        val lines = visionText.textBlocks.flatMap { it.lines }
+        val furigana = if (Furigana.isEnabled(mContext)) findFurigana(lines) else emptySet()
+
+        for ((index, line) in lines.withIndex())
         {
-            for (line in block.lines)
+            if (index in furigana) continue
+
+            for (element in line.elements)
             {
-                for (element in line.elements)
+                for (symbol in element.symbols)
                 {
-                    for (symbol in element.symbols)
-                    {
-                        val rect = symbol.boundingBox ?: continue
-                        val choices = arrayListOf(kotlin.Pair(symbol.text, 100.0))
-                        ocrChars.add(SquareCharOcr(displayData, choices, intArrayOf(rect.left, rect.top, rect.right, rect.bottom)))
-                    }
+                    val rect = symbol.boundingBox ?: continue
+                    val choices = arrayListOf(kotlin.Pair(symbol.text, 100.0))
+                    ocrChars.add(SquareCharOcr(displayData, choices, intArrayOf(rect.left, rect.top, rect.right, rect.bottom)))
                 }
             }
         }
@@ -251,6 +259,21 @@ class OcrRunnable(context: Context, private var mCaptureWindow: CaptureWindow?) 
         displayData.assignIndicies()
 
         return displayData
+    }
+
+    private fun findFurigana(lines: List<Text.Line>): Set<Int>
+    {
+        val boxes = lines.map { line ->
+            val box = line.boundingBox
+            if (box == null) OcrLineBox(OcrBox(0, 0, 0, 0), emptyList())
+            else OcrLineBox(OcrBox(box.left, box.top, box.right, box.bottom), line.elements.flatMap { it.symbols }.mapNotNull { symbol ->
+                symbol.boundingBox?.let { OcrSymbolBox(symbol.text, OcrBox(it.left, it.top, it.right, it.bottom)) }
+            })
+        }
+
+        val found = FuriganaFilter.furiganaLines(boxes)
+        if (found.isNotEmpty()) Log.d(TAG, "Dropped ${found.size} furigana line(s)")
+        return found
     }
 
     private fun loadSimilarChars(): HashMap<String, List<String>>
