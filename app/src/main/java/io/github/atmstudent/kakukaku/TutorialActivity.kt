@@ -31,7 +31,8 @@ class TutorialActivity : AppCompatActivity()
             Slide(R.string.tutorial_3_title, R.string.tutorial_3_text, R.drawable.tutorial_3),
             Slide(R.string.tutorial_4_title, R.string.tutorial_4_text, R.drawable.tutorial_4),
             Slide(R.string.tutorial_5_title, R.string.tutorial_5_text, R.drawable.tutorial_5),
-            Slide(R.string.tutorial_6_title, R.string.tutorial_6_text, R.drawable.tutorial_6))
+            Slide(R.string.tutorial_6_title, R.string.tutorial_6_text, R.drawable.tutorial_6),
+            Slide(R.string.tutorial_7_title, R.string.tutorial_7_text, R.drawable.tutorial_7))
 
     private lateinit var mBinding: ActivityTutorialBinding
 

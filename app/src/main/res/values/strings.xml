@@ -54,6 +54,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" AN
     <string name="tutorial_5_text">In any app, select Japanese text (1) and choose KakuKaku (2) from the menu or from Share. No box needed.</string>
     <string name="tutorial_6_title">Controls in the notification</string>
     <string name="tutorial_6_text">The notification (1) turns Instant mode (scan as soon as you release the box) and the image Filter on or off, and pauses KakuKaku. Press Start there to continue.</string>
+    <string name="tutorial_7_title">Image filter</string>
+    <string name="tutorial_7_text">With Filter on (turn it on in the notification), the box shows the black and white image that is read (1). If text is misread, press and hold the box and slide your finger left or right (2) to change the threshold. Then double-tap.</string>
     <string name="settings_title">Settings</string>
     <string name="settings_text_header">Text</string>
     <string name="settings_popup_header">Popup</string>

@@ -23,7 +23,7 @@ SLIDE_WIDTH = 640
 README_WIDTH = 540
 ORANGE = (255, 109, 0)
 
-# (raw file, [(number, (left, top, right, bottom)), ...])
+# (raw file, [(number, (left, top, right, bottom)[, 'arrow']), ...]); 'arrow' draws a double arrow along the middle of the rectangle instead of a frame
 SLIDES = [
     ('01_home.png', [(1, (277, 896, 802, 1043))]),
     ('03_box.png', [(1, (100, 1304, 492, 1696)), (2, (420, 1620, 520, 1720))]),
@@ -31,6 +31,7 @@ SLIDES = [
     ('05_quick.png', [(1, (70, 192, 228, 277)), (2, (360, 298, 808, 436))]),
     ('06_select_menu.png', [(1, (670, 1396, 750, 1496)), (2, (760, 1152, 1038, 1236))]),
     ('08_notification.png', [(1, (232, 802, 996, 918))]),
+    ('11_filter.png', [(1, (102, 1396, 494, 1788)), (2, (40, 1560, 560, 1620), 'arrow')]),
 ]
 
 README = [('01_home.png', 'home.png'), ('04_popup.png', 'scan.png'), ('09_dictionaries.png', 'dictionaries.png'), ('10_settings.png', 'settings.png')]
@@ -39,10 +40,19 @@ README = [('01_home.png', 'home.png'), ('04_popup.png', 'scan.png'), ('09_dictio
 def annotate(image, marks):
     draw = ImageDraw.Draw(image)
     font = ImageFont.truetype(FONT, 58)
-    for number, (l, t, r, b) in marks:
+    for number, rect, *kind in marks:
+        l, t, r, b = rect
         t -= CROP_TOP
         b -= CROP_TOP
-        draw.rounded_rectangle((l, t, r, b), radius=18, outline=ORANGE, width=8)
+        if kind and kind[0] == 'arrow':
+            y = (t + b) // 2
+            head = 34
+            draw.line((l + head, y, r - head, y), fill=ORANGE, width=14)
+            draw.polygon([(l, y), (l + head * 1.6, y - head), (l + head * 1.6, y + head)], fill=ORANGE)
+            draw.polygon([(r, y), (r - head * 1.6, y - head), (r - head * 1.6, y + head)], fill=ORANGE)
+            t = y - 40
+        else:
+            draw.rounded_rectangle((l, t, r, b), radius=18, outline=ORANGE, width=8)
         # numbered badge on the top-left corner of the frame
         cx, cy, rad = l, t, 40
         draw.ellipse((cx - rad, cy - rad, cx + rad, cy + rad), fill=ORANGE, outline='white', width=5)
