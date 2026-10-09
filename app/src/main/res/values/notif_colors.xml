@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Colours of the notification buttons: the app's own palette where the system has none (before Android 12) -->
+    <color name="notif_primary">@color/md_primary</color>
+    <color name="notif_on_primary">@color/md_on_primary</color>
+    <color name="notif_on_surface">@color/md_on_surface</color>
+    <color name="notif_surface_variant">@color/md_surface_variant</color>
+    <color name="notif_outline">@color/md_outline</color>
+</resources>

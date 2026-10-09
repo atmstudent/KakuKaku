@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The system (wallpaper) palette, dark, Android 12+ -->
+    <color name="notif_primary">@android:color/system_accent1_200</color>
+    <color name="notif_on_primary">@android:color/system_accent1_800</color>
+    <color name="notif_on_surface">@android:color/system_neutral1_100</color>
+    <color name="notif_surface_variant">@android:color/system_neutral2_700</color>
+    <color name="notif_outline">@android:color/system_neutral2_400</color>
+</resources>

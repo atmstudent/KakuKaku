@@ -104,7 +104,7 @@ object ServiceNotification
     /** [filled] buttons are drawn solid (a toggle that is on, or Start); [state] is the On/Off text of a toggle, if it is one */
     private fun bindButton(context: Context, views: RemoteViews, slot: Int, label: String, state: String?, filled: Boolean, click: PendingIntent, description: String?)
     {
-        val textColor = ContextCompat.getColor(context, if (filled) R.color.md_on_primary else R.color.md_on_surface)
+        val textColor = ContextCompat.getColor(context, if (filled) R.color.notif_on_primary else R.color.notif_on_surface)
 
         views.setViewVisibility(BUTTONS[slot], View.VISIBLE)
         views.setInt(BUTTONS[slot], "setBackgroundResource", if (filled) R.drawable.notif_button_on else R.drawable.notif_button_off)
