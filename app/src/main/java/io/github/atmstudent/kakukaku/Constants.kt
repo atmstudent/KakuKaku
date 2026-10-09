@@ -23,6 +23,7 @@ const val KAKUKAKU_PREF_STRIP_LINE_BREAKS = "StripLineBreaks"
 const val KAKUKAKU_PREF_POPUP_SIZE = "PopupSize"
 const val KAKUKAKU_PREF_POPUP_BOTTOM = "PopupBottom"
 const val KAKUKAKU_PREF_OVERLAY_THEME = "OverlayTheme"
+const val KAKUKAKU_PREF_OCR_ENGINE = "OcrEngine"
 
 const val EXTRA_PROJECTION_RESULT_CODE = "io.github.atmstudent.kakukaku.PROJECTION_RESULT_CODE"
 const val EXTRA_PROJECTION_RESULT_INTENT = "io.github.atmstudent.kakukaku.PROJECTION_RESULT_INTENT"

@@ -13,6 +13,9 @@ object AppSettings
     const val THEME_LIGHT = 1
     const val THEME_DARK = 2
 
+    const val ENGINE_ML_KIT = 0
+    const val ENGINE_TESSERACT = 1
+
     private fun prefs(context: Context) = context.getSharedPreferences(KAKUKAKU_PREF_FILE, Context.MODE_PRIVATE)
 
     /** On: line breaks are left out. Off: a break stays in the text and ends a word lookup. */
@@ -44,4 +47,10 @@ object AppSettings
     fun overlayTheme(context: Context): Int = prefs(context).getInt(KAKUKAKU_PREF_OVERLAY_THEME, THEME_SYSTEM).coerceIn(THEME_SYSTEM, THEME_DARK)
 
     fun setOverlayTheme(context: Context, theme: Int) = prefs(context).edit().putInt(KAKUKAKU_PREF_OVERLAY_THEME, theme).apply()
+
+    /** The text recognition used for scans: [ENGINE_ML_KIT] or [ENGINE_TESSERACT] */
+    @JvmStatic
+    fun ocrEngine(context: Context): Int = prefs(context).getInt(KAKUKAKU_PREF_OCR_ENGINE, ENGINE_ML_KIT).coerceIn(ENGINE_ML_KIT, ENGINE_TESSERACT)
+
+    fun setOcrEngine(context: Context, engine: Int) = prefs(context).edit().putInt(KAKUKAKU_PREF_OCR_ENGINE, engine).apply()
 }

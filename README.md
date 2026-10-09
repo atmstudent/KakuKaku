@@ -18,6 +18,7 @@ Yes, it's vibecoded 😞
 ## What's new
 
 - Updated for modern Android: ML Kit Japanese text recognition instead of Tesseract; improved UX; Material 3 design with light and dark mode and dynamic colour.
+- Tesseract, the text recognition of the old Kaku, can be chosen in Settings instead of ML Kit.
 - Kana-only words are found.
 - Furigana are stripped automatically.
 - Import your own dictionary in Yomitan format, including pitch accent and frequency dictionaries.
@@ -37,4 +38,4 @@ KakuKaku works offline. It asks for no network permission, collects nothing and 
 
 ## Licence and credits
 
-BSD 3-Clause, see [LICENSE](LICENSE). © 2016 0xbad1d3a5, © 2026 atmstudent. The deinflection rules (`app/src/main/assets/deinflect.dat`) come from Rikaichan by Jonathan Zarate. Rikaichan is licensed under the GNU GPL (version 2 or later), and that file is not covered by the BSD licence above: it keeps its original terms. Text recognition is Google ML Kit. The same notices are in the app under *About and licences*.
+BSD 3-Clause, see [LICENSE](LICENSE). © 2016 0xbad1d3a5, © 2026 atmstudent. The deinflection rules (`app/src/main/assets/deinflect.dat`) come from Rikaichan by Jonathan Zarate. Rikaichan is licensed under the GNU GPL (version 2 or later), and that file is not covered by the BSD licence above: it keeps its original terms. Text recognition is Google ML Kit, or optionally Tesseract OCR (Apache License 2.0, through Tesseract4Android) with its Japanese language data `jpn` and `jpn_vert` from the tessdata project (Apache License 2.0). The same notices are in the app under *About and licences*.

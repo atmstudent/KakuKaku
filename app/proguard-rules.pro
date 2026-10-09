@@ -27,3 +27,6 @@
 # ML Kit finds its components by reflection; R8 removes the registrars' constructors otherwise and OCR fails to start
 -keep class * implements com.google.firebase.components.ComponentRegistrar { <init>(); }
 -keep class * implements com.google.firebase.components.ComponentRegistrar
+
+# Tesseract is called from native code
+-keep class com.googlecode.tesseract.android.** { *; }

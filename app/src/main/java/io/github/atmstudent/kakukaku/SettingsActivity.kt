@@ -35,6 +35,11 @@ class SettingsActivity : AppCompatActivity()
         addSwitch(R.string.furigana_title, R.string.furigana_summary, Furigana.isEnabled(this)) { Furigana.setEnabled(this, it) }
         addSwitch(R.string.line_breaks_title, R.string.line_breaks_summary, AppSettings.stripLineBreaks(this)) { AppSettings.setStripLineBreaks(this, it) }
 
+        addHeader(R.string.settings_recognition_header)
+        addChoice(R.string.ocr_engine_title,
+                listOf(R.string.ocr_engine_ml_kit, R.string.ocr_engine_tesseract),
+                { AppSettings.ocrEngine(this) }, { AppSettings.setOcrEngine(this, it) })
+
         addHeader(R.string.settings_popup_header)
         addChoice(R.string.popup_size_title,
                 listOf(R.string.popup_size_small, R.string.popup_size_normal, R.string.popup_size_large),

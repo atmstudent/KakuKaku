@@ -11,7 +11,7 @@ JMdict and KANJIDIC2 are the property of the Electronic Dictionary Research and 
 <b>Conjugation rules</b><br>
 The deinflection rules (deinflect.dat) come from Rikaichan by Jonathan Zarate. Rikaichan is licensed under the GNU General Public License (version 2 or later); this file is not covered by the BSD licence below and keeps its original terms.<br><br>
 <b>Libraries</b><br>
-Google ML Kit text recognition (Google terms), AndroidX and Material Components, Gson (Apache License 2.0), ORMLite (ISC licence).<br><br>
+Google ML Kit text recognition (Google terms), Tesseract OCR (Apache License 2.0) through Tesseract4Android (Apache License 2.0) with the Japanese language data jpn and jpn_vert of the tessdata project (Apache License 2.0), AndroidX and Material Components, Gson (Apache License 2.0), ORMLite (ISC licence).<br><br>
 <b>Licence of Kaku and KakuKaku (BSD 3-Clause)</b><br>
 Copyright (c) 2016, 0xbad1d3a5<br>
 Copyright (c) 2026, atmstudent<br>
@@ -58,6 +58,10 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" AN
     <string name="tutorial_7_text">With <b>Filter</b> on, the box adds a <b>black and white filter (1)</b>. Press and hold the box and slide your finger <b>left or right (2)</b> to change the threshold.</string>
     <string name="settings_title">Settings</string>
     <string name="settings_text_header">Text</string>
+    <string name="settings_recognition_header">Text recognition</string>
+    <string name="ocr_engine_title">Recognition engine</string>
+    <string name="ocr_engine_ml_kit">ML Kit (default)</string>
+    <string name="ocr_engine_tesseract">Tesseract (older, slower; shows several choices per character)</string>
     <string name="settings_popup_header">Popup</string>
     <string name="line_breaks_title">Strip line breaks</string>
     <string name="line_breaks_summary">Joins lines of selected or scanned text into one. Turn off to keep each line break, which ends a word lookup.</string>

@@ -42,6 +42,7 @@ class OcrRunnable(context: Context, private var mCaptureWindow: CaptureWindow?) 
     private val mCommonMistakes = loadCommonMistakes()
 
     private var mTextRecognizer: TextRecognizer? = null
+    private val mTesseract = TesseractEngine(context)
     private var mThreadRunning = true
     private var mReady = false
     private var mOcrParams: OcrParams? = null
@@ -91,8 +92,16 @@ class OcrRunnable(context: Context, private var mCaptureWindow: CaptureWindow?) 
 
                     mCaptureWindow!!.showLoadingAnimation()
 
-                    val visionText = Tasks.await(mTextRecognizer!!.process(InputImage.fromBitmap(ocrParams.bitmap, 0)))
-                    val displayData = getDisplayData(ocrParams, visionText)
+                    val displayData = if (AppSettings.ocrEngine(mContext) == AppSettings.ENGINE_TESSERACT)
+                    {
+                        val symbols = mTesseract.recognize(ocrParams.bitmap, ocrParams.textDirection == TextDirection.VERTICAL)
+                        getDisplayDataTesseract(ocrParams, symbols)
+                    }
+                    else
+                    {
+                        val visionText = Tasks.await(mTextRecognizer!!.process(InputImage.fromBitmap(ocrParams.bitmap, 0)))
+                        getDisplayData(ocrParams, visionText)
+                    }
                     processDisplayData(displayData)
 
                     if (displayData.text.length > 0)
@@ -137,10 +146,11 @@ class OcrRunnable(context: Context, private var mCaptureWindow: CaptureWindow?) 
     }
 
     /**
-     * ML Kit recognition can't be interrupted, so callers simply wait for [isReadyForOcr].
+     * ML Kit recognition can't be interrupted, so callers simply wait for [isReadyForOcr]; Tesseract can be.
      */
     fun cancel()
     {
+        mTesseract.cancel()
     }
 
     /**
@@ -156,6 +166,7 @@ class OcrRunnable(context: Context, private var mCaptureWindow: CaptureWindow?) 
 
             mOcrLock.notify()
             mTextRecognizer?.close()
+            mTesseract.release()
         }
     }
 
@@ -276,6 +287,29 @@ class OcrRunnable(context: Context, private var mCaptureWindow: CaptureWindow?) 
                     ocrChars.add(SquareCharOcr(displayData, choices, intArrayOf(rect.left, rect.top, rect.right, rect.bottom)))
                 }
             }
+        }
+
+        displayData.assignIndicies()
+
+        return displayData
+    }
+
+    private fun getDisplayDataTesseract(ocrParams: OcrParams, symbols: List<TesseractSymbol>): DisplayDataOcr
+    {
+        val ocrChars = ArrayList<SquareCharOcr>()
+        val displayData = DisplayDataOcr(ocrParams.originalBitmap, ocrParams.box, ocrParams.instantMode, ocrChars)
+
+        val keepLineBreaks = !AppSettings.stripLineBreaks(mContext)
+
+        for (symbol in symbols)
+        {
+            // A break between lines ends a word lookup; its box is empty, at the start of the next line
+            if (keepLineBreaks && symbol.startsLine && ocrChars.isNotEmpty())
+            {
+                ocrChars.add(SquareCharOcr(displayData, arrayListOf(kotlin.Pair("\n", 100.0)), intArrayOf(symbol.box[0], symbol.box[1], symbol.box[0], symbol.box[1])))
+            }
+
+            ocrChars.add(SquareCharOcr(displayData, ArrayList(symbol.choices), symbol.box))
         }
 
         displayData.assignIndicies()
