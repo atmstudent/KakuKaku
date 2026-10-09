@@ -110,10 +110,11 @@ class EditWindow(context: Context, windowCoordinator: WindowCoordinator) : Windo
             width += wPadding * 2
             height += hPadding * 2
 
-            if (xPos < 0) xPos = 0
-            if (yPos < 0) yPos = 0
-            if (width + xPos > orig.width) width = orig.width - xPos - 1
-            if (height + yPos > orig.height) height = orig.height - yPos - 1
+            // The box edges are drawn at xPos + width and yPos + height, so those must stay inside the bitmap
+            xPos = xPos.coerceIn(0, orig.width - 1)
+            yPos = yPos.coerceIn(0, orig.height - 1)
+            if (width + xPos >= orig.width) width = orig.width - xPos - 1
+            if (height + yPos >= orig.height) height = orig.height - yPos - 1
 
             Log.d(TAG, "After | Orig: (${orig.width}x${orig.height}) Box: ($xPos, $yPos) (${width}x${height})")
 
@@ -131,8 +132,7 @@ class EditWindow(context: Context, windowCoordinator: WindowCoordinator) : Windo
             }
             for (yRight in yPos until height + yPos)
             {
-                orig.setPixel(xPos + width, yRight, Color.RED) // TODO: We're crashing here - investigate
-            }
+                orig.setPixel(xPos + width, yRight, Color.RED)            }
             orig.setPixel(xPos + width, yPos + height, Color.RED)
 
             val avgSize = calculateMedianSquareSize(squareChar)
