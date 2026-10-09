@@ -1,6 +1,8 @@
 package io.github.atmstudent.kakukaku.Windows;
 
 import android.content.Context;
+import android.content.res.Configuration;
+import io.github.atmstudent.kakukaku.AppSettings;
 import android.graphics.PixelFormat;
 import android.graphics.Point;
 import android.hardware.input.InputManager;
@@ -65,7 +67,8 @@ public abstract class Window implements Stoppable, WindowListener {
         this.context = context;
         this.windowCoordinator = windowCoordinator;
 
-        LayoutInflater inflater = (LayoutInflater) this.context.getApplicationContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        // Inflating with a themed context makes the colours light or dark as chosen in the settings, whatever the system uses
+        LayoutInflater inflater = LayoutInflater.from(themedContext(this.context.getApplicationContext()));
 
         windowManager = (WindowManager) this.context.getSystemService(WINDOW_SERVICE);
         window = inflater.inflate(R.layout.window, null);
@@ -164,6 +167,18 @@ public abstract class Window implements Stoppable, WindowListener {
             context = null;
             windowCoordinator = null;
         }
+    }
+
+    /** A context whose light/dark mode follows the popup theme setting; [base] itself when that is the system */
+    private static Context themedContext(Context base)
+    {
+        int theme = AppSettings.overlayTheme(base);
+        if (theme == AppSettings.THEME_SYSTEM) return base;
+
+        Configuration configuration = new Configuration(base.getResources().getConfiguration());
+        int night = theme == AppSettings.THEME_DARK ? Configuration.UI_MODE_NIGHT_YES : Configuration.UI_MODE_NIGHT_NO;
+        configuration.uiMode = (configuration.uiMode & ~Configuration.UI_MODE_NIGHT_MASK) | night;
+        return base.createConfigurationContext(configuration);
     }
 
     public void show()

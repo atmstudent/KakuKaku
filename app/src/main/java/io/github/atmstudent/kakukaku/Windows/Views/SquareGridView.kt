@@ -45,7 +45,13 @@ open class SquareGridView : ViewGroup
 
     private fun Init(context: Context)
     {
-        squareCellSize = dpToPx(context, DEFAULT_CELL_SIZE_DP)
+        squareCellSize = scaledCellSize()
+    }
+
+    /** The cell size in pixels, following the text size setting */
+    protected fun scaledCellSize(): Int
+    {
+        return Math.round(dpToPx(context, DEFAULT_CELL_SIZE_DP) * AppSettings.popupScale(context))
     }
 
     fun setCellSize(dp: Int)

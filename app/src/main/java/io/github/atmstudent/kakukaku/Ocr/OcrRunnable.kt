@@ -241,9 +241,19 @@ class OcrRunnable(context: Context, private var mCaptureWindow: CaptureWindow?) 
         val lines = visionText.textBlocks.flatMap { it.lines }
         val furigana = if (Furigana.isEnabled(mContext)) findFurigana(lines) else emptySet()
 
+        val keepLineBreaks = !AppSettings.stripLineBreaks(mContext)
+
         for ((index, line) in lines.withIndex())
         {
             if (index in furigana) continue
+
+            // A break between lines ends a word lookup; its box is empty, at the start of the next line
+            val lineStart = line.boundingBox
+            if (keepLineBreaks && ocrChars.isNotEmpty() && lineStart != null)
+            {
+                val breakPos = intArrayOf(lineStart.left, lineStart.top, lineStart.left, lineStart.top)
+                ocrChars.add(SquareCharOcr(displayData, arrayListOf(kotlin.Pair("\n", 100.0)), breakPos))
+            }
 
             for (element in line.elements)
             {

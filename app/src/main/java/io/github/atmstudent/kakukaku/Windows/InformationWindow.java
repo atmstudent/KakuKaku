@@ -14,6 +14,9 @@ import android.graphics.Point;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import io.github.atmstudent.kakukaku.AppSettings;
+import android.widget.TextView;
+import android.util.TypedValue;
 import android.view.ViewGroup;
 import android.view.ViewConfiguration;
 import android.view.WindowManager;
@@ -52,6 +55,7 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
 
     private static final String TAG = InformationWindow.class.getName();
     private static final float FLICK_THRESHOLD = -0.05f;
+    private static final int FLICK_DISTANCE_BOTTOM_DP = 60;
 
     // A landscape screen shorter than this (a phone) has room for two rows of characters only
     private static final float LANDSCAPE_TALL_SCREEN_DP = 600f;
@@ -63,6 +67,8 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
     private TextSwitcher mDictResults;
     private Searcher mSearcher;
     private boolean mTextOnlyLookup;
+    // The card is at the bottom of the screen (the setting, in portrait only); swipes and the slide-out then go down
+    private boolean mAtBottom;
     // The definitions slide in when the popup shows its first result, not when another character is selected
     private boolean mFirstResultPending = true;
     private ArrayList<ISquareChar> mSearchedChars = new ArrayList<>();
@@ -162,6 +168,7 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
                 ? new Point(window.getWidth(), window.getHeight())
                 : getRealDisplaySize();
         boolean landscape = size.x > size.y;
+        mAtBottom = !landscape && AppSettings.popupAtBottom(context);
         float heightDp = size.y / context.getResources().getDisplayMetrics().density;
 
         FrameLayout.LayoutParams layout = (FrameLayout.LayoutParams) mInfoWindow.getLayoutParams();
@@ -181,8 +188,8 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
             int margin = KakuKakuTools.dpToPx(context, 10);
             layout.width = ViewGroup.LayoutParams.MATCH_PARENT;
             layout.height = ViewGroup.LayoutParams.WRAP_CONTENT;
-            layout.gravity = FrameLayout.LayoutParams.UNSPECIFIED_GRAVITY;
-            layout.setMargins(margin, margin, margin, KakuKakuTools.dpToPx(context, 100));
+            layout.gravity = mAtBottom ? Gravity.BOTTOM : FrameLayout.LayoutParams.UNSPECIFIED_GRAVITY;
+            layout.setMargins(margin, margin, margin, mAtBottom ? margin : KakuKakuTools.dpToPx(context, 100));
             infoWindow.setMaxHeightPx(size.y * 2 / 3);
             mKanjiGrid.setMaxRows(0);
         }
@@ -225,6 +232,13 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
         mDictResults.setText("");
         mFirstResultPending = true;
 
+        // The text size setting may have changed since the popup was last shown
+        float textSizeSp = 14f * AppSettings.popupScale(context);
+        for (int i = 0; i < mDictResults.getChildCount(); i++)
+        {
+            ((TextView) mDictResults.getChildAt(i)).setTextSize(TypedValue.COMPLEX_UNIT_SP, textSizeSp);
+        }
+
         applyOrientationLayout();
 
         window.setVisibility(View.VISIBLE);
@@ -236,7 +250,7 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
     @Override
     public void hide()
     {
-        window.animate().translationY(-getRealDisplaySize().y).setListener(new AnimatorListenerAdapter() {
+        window.animate().translationY(mAtBottom ? getRealDisplaySize().y : -getRealDisplaySize().y).setListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation)
             {
@@ -329,7 +343,7 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
         }
 
         params.y = (int) (motionEvent1.getRawY() - motionEvent.getRawY());
-        if (params.y > 0){
+        if (mAtBottom ? params.y < 0 : params.y > 0){
             params.y = 0;
         }
         windowManager.updateViewLayout(window, params);
@@ -349,7 +363,13 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
         Log.d(TAG, String.format("Fling strength: %f", v1 / mMaxFlingVelocity));
         Log.d(TAG, String.format("Distance moved: %f", distanceMoved));
 
-        if ((v1 / mMaxFlingVelocity) < FLICK_THRESHOLD)
+        float flingStrength = v1 / mMaxFlingVelocity;
+        // The window follows the finger while it is dragged, so the velocity is measured against a moving window:
+        // at the bottom a downward swipe is judged by how far it went on the screen instead
+        boolean dismissed = mAtBottom
+                ? distanceMoved < -KakuKakuTools.dpToPx(context, FLICK_DISTANCE_BOTTOM_DP)
+                : flingStrength < FLICK_THRESHOLD;
+        if (dismissed)
         {
             hide();
             return true;

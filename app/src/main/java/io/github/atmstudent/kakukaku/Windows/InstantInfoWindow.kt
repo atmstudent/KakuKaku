@@ -100,7 +100,8 @@ class InstantInfoWindow(context: Context,
             if (!addedToWindowManager)
             {
                 textInfo.text = displayData.text
-                textInfo.setTextColor(ContextCompat.getColor(context, R.color.window_on_surface))
+                textInfo.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14f * io.github.atmstudent.kakukaku.AppSettings.popupScale(context))
+                textInfo.setTextColor(ContextCompat.getColor(textInfo.context, R.color.window_on_surface))
 
                 if (isBoxHorizontal)
                 {

@@ -1,5 +1,6 @@
 package io.github.atmstudent.kakukaku.Windows.Views
 
+import io.github.atmstudent.kakukaku.AppSettings
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
@@ -87,7 +88,7 @@ class KanjiCharacterView : FrameLayout, GestureDetector.OnGestureListener, IReca
         mKanjiTextView.gravity = Gravity.CENTER
         // Font padding pushes the glyph toward the bottom of the cell; drop it so the glyph is centered
         mKanjiTextView.includeFontPadding = false
-        mKanjiTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, CHARACTER_TEXT_SIZE_DP.toFloat())
+        mKanjiTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, characterTextSizeDp(context))
         mKanjiTextView.setTextColor(ContextCompat.getColor(context, R.color.window_on_surface))
 
         addView(mKanjiTextView)
@@ -369,6 +370,10 @@ class KanjiCharacterView : FrameLayout, GestureDetector.OnGestureListener, IReca
     {
         /** Also the size of the first line of each definition, so the two match */
         const val CHARACTER_TEXT_SIZE_DP = 20
+
+        /** The size of the characters in dp, following the text size setting */
+        @JvmStatic
+        fun characterTextSizeDp(context: Context): Float = CHARACTER_TEXT_SIZE_DP * AppSettings.popupScale(context)
 
         const val HIGHLIGHT_GROW_DP = 3
 

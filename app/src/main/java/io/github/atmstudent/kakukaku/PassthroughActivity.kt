@@ -43,8 +43,10 @@ class PassthroughActivity : AppCompatActivity()
             }
         }
 
-        // Line breaks (e.g. from selecting stacked vertical text) would show up as empty character boxes
-        processText = processText?.replace(Regex("[\\r\\n\\u2028\\u2029]+"), "")
+        // Line breaks (e.g. from selecting stacked vertical text) would show up as empty character boxes; with the
+        // setting off they stay as one break each, which ends a word lookup
+        val lineBreaks = Regex("[\\r\\n\\u2028\\u2029]+")
+        processText = if (AppSettings.stripLineBreaks(this)) processText?.replace(lineBreaks, "") else processText?.replace(lineBreaks, "\n")?.trim('\n')
 
         if (!processText.isNullOrEmpty())
         {

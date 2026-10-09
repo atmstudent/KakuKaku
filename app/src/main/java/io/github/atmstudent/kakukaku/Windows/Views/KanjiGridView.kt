@@ -22,7 +22,7 @@ class KanjiGridView : SquareGridView, IRecalculateKanjiViews
 
     private var mScrollValue: Int = 0
 
-    private val mKanjiCellSize = squareCellSize
+    private var mKanjiCellSize = squareCellSize
 
     init
     {
@@ -74,6 +74,15 @@ class KanjiGridView : SquareGridView, IRecalculateKanjiViews
     {
         mDisplayData = displayData
         offset = 0
+
+        // The text size setting may have changed since the cells were made
+        val cellSize = scaledCellSize()
+        if (cellSize != mKanjiCellSize)
+        {
+            squareCellSize = cellSize
+            mKanjiCellSize = cellSize
+            removeAllViews()
+        }
 
         ensureViews()
     }

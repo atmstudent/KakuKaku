@@ -60,18 +60,11 @@ class MainStartFragment : Fragment()
             when (it.itemId)
             {
                 R.id.menu_dictionaries -> startActivity(Intent(mainActivity, DictionariesActivity::class.java))
+                R.id.menu_settings -> startActivity(Intent(mainActivity, SettingsActivity::class.java))
                 R.id.menu_about -> showAbout()
             }
             true
         }
-        val furiganaSwitch = rootView.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.furigana_switch)
-        furiganaSwitch.isChecked = Furigana.isEnabled(mainActivity)
-        rootView.findViewById<View>(R.id.furigana_row).setOnClickListener {
-            val enabled = !furiganaSwitch.isChecked
-            furiganaSwitch.isChecked = enabled
-            Furigana.setEnabled(mainActivity, enabled)
-        }
-
         startButton.setOnClickListener {
             if (MainService.IsRunning()) mainActivity.onStopPressed() else mainActivity.onStartPressed()
         }

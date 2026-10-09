@@ -26,10 +26,11 @@ object HeadingStyle
     fun apply(context: Context, sb: SpannableStringBuilder, headingStart: Int, pitchStart: Int, pitchEnd: Int, reasonStart: Int)
     {
         val flags = Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+        val textSizeDp = KanjiCharacterView.characterTextSizeDp(context)
         val end = sb.length
         fun large(from: Int, to: Int)
         {
-            if (to > from) sb.setSpan(AbsoluteSizeSpan(KanjiCharacterView.CHARACTER_TEXT_SIZE_DP, true), from, to, flags)
+            if (to > from) sb.setSpan(AbsoluteSizeSpan(Math.round(textSizeDp), true), from, to, flags)
         }
 
         val largeEnd = if (reasonStart >= 0) reasonStart else end
@@ -42,14 +43,14 @@ object HeadingStyle
             large(headingStart, pitchStart)
             large(pitchEnd, largeEnd)
 
-            val largePx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, KanjiCharacterView.CHARACTER_TEXT_SIZE_DP.toFloat(), context.resources.displayMetrics)
+            val largePx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, textSizeDp, context.resources.displayMetrics)
             sb.setSpan(TopAlignedSmallSpan(largePx, PITCH_SCALE), pitchStart, pitchEnd, flags)
             sb.setSpan(StyleSpan(Typeface.BOLD), pitchStart, pitchEnd, flags)
         }
 
         if (reasonStart in 0 until end)
         {
-            sb.setSpan(AbsoluteSizeSpan(Math.round(KanjiCharacterView.CHARACTER_TEXT_SIZE_DP * REASON_SCALE), true), reasonStart, end, flags)
+            sb.setSpan(AbsoluteSizeSpan(Math.round(textSizeDp * REASON_SCALE), true), reasonStart, end, flags)
         }
     }
 
