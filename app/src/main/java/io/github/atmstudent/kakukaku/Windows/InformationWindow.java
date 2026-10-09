@@ -63,6 +63,8 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
     private TextSwitcher mDictResults;
     private Searcher mSearcher;
     private boolean mTextOnlyLookup;
+    // The definitions slide in when the popup shows its first result, not when another character is selected
+    private boolean mFirstResultPending = true;
     private ArrayList<ISquareChar> mSearchedChars = new ArrayList<>();
 
     public InformationWindow(Context context, WindowCoordinator windowCoordinator)
@@ -221,6 +223,7 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
     public void show()
     {
         mDictResults.setText("");
+        mFirstResultPending = true;
 
         applyOrientationLayout();
 
@@ -443,7 +446,16 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
             sb.delete(sb.length() - 2, sb.length());
         }
 
-        mDictResults.setText(sb);
+        if (mFirstResultPending)
+        {
+            mDictResults.setText(sb);
+            mFirstResultPending = false;
+        }
+        else
+        {
+            // No animation: the text is replaced in place
+            mDictResults.setCurrentText(sb);
+        }
     }
 
     private String getMeaning(EntryOptimized entry)
