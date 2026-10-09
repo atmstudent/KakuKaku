@@ -15,7 +15,6 @@ const val DB_ENAMEDICT_NAME = "ENAMEDICT"
 const val KAKUKAKU_PREF_FILE = "io.github.atmstudent.kakukaku"
 const val KAKUKAKU_PREF_SELECTED_DICTIONARY = "SelectedDictionary"
 const val KAKUKAKU_PREF_PITCH_ACCENT = "PitchAccent"
-const val KAKUKAKU_PREF_SHOW_HIDE = "ShowHide"
 const val KAKUKAKU_PREF_IMAGE_FILTER = "ImageFilter"
 const val KAKUKAKU_PREF_TEXT_DIRECTION = "TextDirection"
 const val KAKUKAKU_PREF_INSTANT_MODE = "InstantMode"
@@ -36,5 +35,8 @@ const val KAKUKAKU_CHANNEL_NAME = "Show KakuKaku Notification"
 const val REQUEST_SERVICE_TOGGLE_IMAGE_PREVIEW = 300
 const val REQUEST_SERVICE_TOGGLE_PAGE_MODE = 400
 const val REQUEST_SERVICE_TOGGLE_INSTANT_MODE = 500
-const val REQUEST_SERVICE_SHUTDOWN = 600
-const val REQUEST_SERVICE_TOGGLE_SHOW_HIDE = 700
+const val REQUEST_SERVICE_PAUSE = 700
+const val REQUEST_SERVICE_START = 800
+
+/** Boolean extra of MainActivity: start capturing right away (the Start button of the notification) */
+const val EXTRA_START_FROM_NOTIFICATION = "io.github.atmstudent.kakukaku.START_FROM_NOTIFICATION"

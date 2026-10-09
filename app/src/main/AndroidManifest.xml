@@ -23,11 +23,10 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
-        <receiver android:name=".MainService$CloseMainService" android:exported="false" />
+        <receiver android:name=".MainService$PauseMainService" android:exported="false" />
         <receiver android:name=".MainService$TogglePageModeMainService" android:exported="false" />
         <receiver android:name=".MainService$ToggleInstantModeMainService" android:exported="false" />
         <receiver android:name=".MainService$ToggleImagePreviewMainService" android:exported="false" />
-        <receiver android:name=".MainService$ToggleShowHideMainService" android:exported="false" />
 
         <activity
             android:name=".MainActivity"

@@ -1,9 +1,6 @@
 package io.github.atmstudent.kakukaku;
 
-import android.app.Notification;
-import android.app.NotificationChannel;
 import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -25,19 +22,14 @@ import android.os.Handler;
 import android.os.IBinder;
 import androidx.core.app.ServiceCompat;
 import androidx.core.content.ContextCompat;
-import androidx.core.app.NotificationCompat;
 import android.util.Log;
 import android.view.Display;
-import android.view.View;
-import android.widget.RemoteViews;
 import android.widget.Toast;
 
 import io.github.atmstudent.kakukaku.Interfaces.Stoppable;
 import io.github.atmstudent.kakukaku.Windows.Window;
 import io.github.atmstudent.kakukaku.Windows.WindowCoordinator;
 
-import static androidx.core.app.NotificationCompat.FLAG_FOREGROUND_SERVICE;
-import static androidx.core.app.NotificationCompat.FLAG_ONGOING_EVENT;
 
 /**
  * Created by 0xbad1d3a5 on 4/9/2016.
@@ -46,12 +38,16 @@ public class MainService extends Service implements Stoppable {
 
     private static final String TAG = MainService.class.getName();
 
-    public static class CloseMainService extends BroadcastReceiver
+    /** The Pause button of the notification */
+    public static class PauseMainService extends BroadcastReceiver
     {
         @Override
-        public void onReceive(Context context, Intent intent) {
-            Log.d(TAG, "GOT CLOSE");
-            context.stopService(new Intent(context, MainService.class));
+        public void onReceive(Context context, Intent intent)
+        {
+            if (IsRunning())
+            {
+                KakuKakuTools.startKakuKakuService(context, new Intent(context, MainService.class).setAction(ACTION_PAUSE));
+            }
         }
     }
 
@@ -64,20 +60,7 @@ public class MainService extends Service implements Stoppable {
             boolean imagePreview = prefs.getBoolean(Constants.KAKUKAKU_PREF_IMAGE_FILTER, false);
             prefs.edit().putBoolean(Constants.KAKUKAKU_PREF_IMAGE_FILTER, !imagePreview).apply();
 
-            KakuKakuTools.startKakuKakuService(context, new Intent(context, MainService.class));
-        }
-    }
-
-    public static class ToggleShowHideMainService extends BroadcastReceiver
-    {
-        @Override
-        public void onReceive(Context context, Intent intent)
-        {
-            SharedPreferences prefs = context.getSharedPreferences(Constants.KAKUKAKU_PREF_FILE, Context.MODE_PRIVATE);
-            boolean shown = prefs.getBoolean(Constants.KAKUKAKU_PREF_SHOW_HIDE, true);
-            prefs.edit().putBoolean(Constants.KAKUKAKU_PREF_SHOW_HIDE, !shown).apply();
-
-            KakuKakuTools.startKakuKakuService(context, new Intent(context, MainService.class));
+            refreshAfterToggle(context);
         }
     }
 
@@ -104,7 +87,20 @@ public class MainService extends Service implements Stoppable {
             boolean pageMode = prefs.getBoolean(Constants.KAKUKAKU_PREF_INSTANT_MODE, false);
             prefs.edit().putBoolean(Constants.KAKUKAKU_PREF_INSTANT_MODE, !pageMode).apply();
 
+            refreshAfterToggle(context);
+        }
+    }
+
+    /** The running service re-reads the settings (and updates its notification); a paused one only needs a new notification */
+    private static void refreshAfterToggle(Context context)
+    {
+        if (IsRunning())
+        {
             KakuKakuTools.startKakuKakuService(context, new Intent(context, MainService.class));
+        }
+        else
+        {
+            ServiceNotification.INSTANCE.post(context, false);
         }
     }
 
@@ -113,10 +109,10 @@ public class MainService extends Service implements Stoppable {
         @Override
         public void onReceive(Context context, Intent intent)
         {
-            SharedPreferences prefs = context.getSharedPreferences(Constants.KAKUKAKU_PREF_FILE, Context.MODE_PRIVATE);
-            prefs.edit().putBoolean(Constants.KAKUKAKU_PREF_SHOW_HIDE, false).apply();
-
-            KakuKakuTools.startKakuKakuService(context, new Intent(context, MainService.class));
+            if (IsRunning())
+            {
+                KakuKakuTools.startKakuKakuService(context, new Intent(context, MainService.class).setAction(ACTION_PAUSE));
+            }
         }
     }
 
@@ -135,8 +131,11 @@ public class MainService extends Service implements Stoppable {
                         mMediaProjection = null;
                         mVirtualDisplay = null;
                         mImageReader.close();
-                        // The consent token can't be reused (Android 14+), so end the session
-                        stopSelf();
+                        // The consent token can't be reused (Android 14+), so the session ends; the notification stays with Start
+                        if (!mDestroyed)
+                        {
+                            pause();
+                        }
                     }
                 }
             });
@@ -144,11 +143,11 @@ public class MainService extends Service implements Stoppable {
     }
 
     public static final String ACTION_STATE_CHANGED = "io.github.atmstudent.kakukaku.ACTION_STATE_CHANGED";
+    public static final String ACTION_PAUSE = "io.github.atmstudent.kakukaku.ACTION_PAUSE";
 
     private static boolean isKakuKakuRunning = false;
 
     private static final int VIRTUAL_DISPLAY_FLAGS = DisplayManager.VIRTUAL_DISPLAY_FLAG_OWN_CONTENT_ONLY | DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC;
-    private static final int NOTIFICATION_ID = 1;
 
     private IntentFilter mIntentFilter = new IntentFilter(Intent.ACTION_SCREEN_OFF);
     private ScreenOffReceiver mScreenOffReceiver = new ScreenOffReceiver();
@@ -166,6 +165,10 @@ public class MainService extends Service implements Stoppable {
     private int mRotation;
     private Point mRealDisplaySize = new Point();
 
+    // Paused: the service ends but its notification stays, with Start. Destroyed: the service is gone for good.
+    private boolean mPaused = false;
+    private boolean mDestroyed = false;
+
     private MediaProjectionStopCallback mMediaProjectionStopCallback;
     private WindowCoordinator mWindowCoordinator = new WindowCoordinator(this);
 
@@ -181,12 +184,6 @@ public class MainService extends Service implements Stoppable {
     {
         super.onCreate();
 
-        if (!isKakuKakuRunning)
-        {
-            SharedPreferences prefs = getSharedPreferences(Constants.KAKUKAKU_PREF_FILE, Context.MODE_PRIVATE);
-            prefs.edit().putBoolean(Constants.KAKUKAKU_PREF_SHOW_HIDE, true).apply();
-        }
-
         Log.d(TAG, "CREATING MAINSERVICE: " + System.identityHashCode(this));
         Toast.makeText(this, "Starting capture window...", Toast.LENGTH_LONG).show();
 
@@ -195,7 +192,7 @@ public class MainService extends Service implements Stoppable {
 
         ContextCompat.registerReceiver(this, mScreenOffReceiver, mIntentFilter, ContextCompat.RECEIVER_NOT_EXPORTED);
 
-        ServiceCompat.startForeground(this, NOTIFICATION_ID, getNotification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
+        ServiceCompat.startForeground(this, ServiceNotification.NOTIFICATION_ID, ServiceNotification.INSTANCE.build(this, true), ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
         isKakuKakuRunning = true;
         notifyStateChanged();
     }
@@ -213,28 +210,18 @@ public class MainService extends Service implements Stoppable {
             mProjectionResultCode = intent.getExtras().getInt(Constants.EXTRA_PROJECTION_RESULT_CODE);
         }
 
-        // Determine if we need to start/stop the capture service
-        SharedPreferences prefs = getSharedPreferences(Constants.KAKUKAKU_PREF_FILE, Context.MODE_PRIVATE);
-        Boolean shown = prefs.getBoolean(Constants.KAKUKAKU_PREF_SHOW_HIDE, true);
-        if (shown)
+        if (ACTION_PAUSE.equals(intent.getAction()))
         {
-            // Re-init CaptureWindow as well as prefs may have changed (BroadcastReceiver go to onStartCommand())
-            mWindowCoordinator.getWindow(Constants.WINDOW_CAPTURE).reInit(new Window.ReinitOptions());
+            pause();
+            return START_NOT_STICKY;
         }
-        else
-        {
-            // Paused: no windows and no frames. The screen-sharing session stays, because Android 14+ cannot
-            // start another one without asking again; stopping it here would end the whole service.
-            mWindowCoordinator.stopAllWindows();
-            if (mVirtualDisplay != null)
-            {
-                mVirtualDisplay.setSurface(null);
-            }
-        }
+
+        // Re-init CaptureWindow as well as prefs may have changed (BroadcastReceiver go to onStartCommand())
+        mWindowCoordinator.getWindow(Constants.WINDOW_CAPTURE).reInit(new Window.ReinitOptions());
 
         // Set notification text
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        notificationManager.notify(NOTIFICATION_ID, getNotification());
+        notificationManager.notify(ServiceNotification.NOTIFICATION_ID, ServiceNotification.INSTANCE.build(this, true));
 
         return START_NOT_STICKY;
     }
@@ -258,11 +245,35 @@ public class MainService extends Service implements Stoppable {
         }
     }
 
+    /**
+     * Stops capturing but leaves the notification, now with a Start button: the screen-sharing permission can't be
+     * reused (Android 14+), so Start goes through the app again. The service itself ends.
+     */
+    private void pause()
+    {
+        if (mPaused || mDestroyed)
+        {
+            return;
+        }
+        mPaused = true;
+
+        mWindowCoordinator.stopAllWindows();
+        stop();
+
+        stopForeground(STOP_FOREGROUND_DETACH);
+        ServiceNotification.INSTANCE.post(this, false);
+        stopSelf();
+    }
+
     @Override
     public void onDestroy()
     {
+        mDestroyed = true;
         unregisterReceiver(mScreenOffReceiver);
-        stopForeground(STOP_FOREGROUND_REMOVE);
+        if (!mPaused)
+        {
+            stopForeground(STOP_FOREGROUND_REMOVE);
+        }
         Log.d(TAG, "DESTORYING MAINSERVICE: " + System.identityHashCode(this));
 
         stop();
@@ -327,104 +338,6 @@ public class MainService extends Service implements Stoppable {
         return image;
     }
 
-    private Notification getNotification()
-    {
-        String channelId = createNotificationChannel();
-
-        Prefs prefs = KakuKakuTools.getPrefs(this);
-        boolean running = prefs.getShowHideSetting();
-        String title = getString(running ? R.string.notification_running : R.string.notification_paused);
-
-        Intent launchIntent = getPackageManager().getLaunchIntentForPackage(getPackageName());
-        PendingIntent open = PendingIntent.getActivity(this, 0, launchIntent, PendingIntent.FLAG_IMMUTABLE);
-
-        Notification n = new NotificationCompat.Builder(this, channelId)
-                .setSmallIcon(R.drawable.kakukaku_notification_icon)
-                .setContentTitle(title)
-                .setStyle(new NotificationCompat.DecoratedCustomViewStyle())
-                .setCustomContentView(buildControls(R.layout.notification_collapsed, prefs, running, title))
-                .setCustomBigContentView(buildControls(R.layout.notification_expanded, prefs, running, title))
-                .setContentIntent(open)
-                .setOnlyAlertOnce(true)
-                .build();
-
-        n.flags = FLAG_ONGOING_EVENT | FLAG_FOREGROUND_SERVICE;
-
-        return n;
-    }
-
-    private static final int[] NOTIFICATION_BUTTONS = {R.id.notif_btn1, R.id.notif_btn2, R.id.notif_btn3, R.id.notif_btn4};
-    private static final int[] NOTIFICATION_LABELS = {R.id.notif_btn1_label, R.id.notif_btn2_label, R.id.notif_btn3_label, R.id.notif_btn4_label};
-    private static final int[] NOTIFICATION_STATES = {R.id.notif_btn1_state, R.id.notif_btn2_state, R.id.notif_btn3_state, R.id.notif_btn4_state};
-
-    private PendingIntent broadcast(int requestCode, Class<?> receiver)
-    {
-        return PendingIntent.getBroadcast(this, requestCode, new Intent(this, receiver), PendingIntent.FLAG_IMMUTABLE);
-    }
-
-    /**
-     * The notification's buttons: Pause, the Instant mode and Image filter toggles (filled when on, outlined when
-     * off, with the state written out) and Shutdown. While paused only Resume and Shutdown are shown.
-     */
-    private RemoteViews buildControls(int layout, Prefs prefs, boolean running, String title)
-    {
-        RemoteViews views = new RemoteViews(getPackageName(), layout);
-        views.setTextViewText(R.id.notif_title, title);
-
-        PendingIntent toggleShowHide = broadcast(Constants.REQUEST_SERVICE_TOGGLE_SHOW_HIDE, ToggleShowHideMainService.class);
-        PendingIntent shutdown = broadcast(Constants.REQUEST_SERVICE_SHUTDOWN, CloseMainService.class);
-
-        if (running)
-        {
-            bindButton(views, 0, getString(R.string.notification_pause), null, false, toggleShowHide, null);
-            bindToggle(views, 1, getString(R.string.notification_instant), prefs.getInstantModeSetting(),
-                    broadcast(Constants.REQUEST_SERVICE_TOGGLE_INSTANT_MODE, ToggleInstantModeMainService.class), R.string.notification_instant_description);
-            bindToggle(views, 2, getString(R.string.notification_filter), prefs.getImageFilterSetting(),
-                    broadcast(Constants.REQUEST_SERVICE_TOGGLE_IMAGE_PREVIEW, ToggleImagePreviewMainService.class), R.string.notification_filter_description);
-        }
-        else
-        {
-            bindButton(views, 0, getString(R.string.notification_resume), null, true, toggleShowHide, null);
-            views.setViewVisibility(NOTIFICATION_BUTTONS[1], View.GONE);
-            views.setViewVisibility(NOTIFICATION_BUTTONS[2], View.GONE);
-        }
-        bindButton(views, 3, getString(R.string.notification_shutdown), null, false, shutdown, null);
-
-        return views;
-    }
-
-    private void bindToggle(RemoteViews views, int slot, String label, boolean on, PendingIntent click, int descriptionResource)
-    {
-        String state = getString(on ? R.string.notification_on : R.string.notification_off);
-        String description = getString(descriptionResource, state, getString(on ? R.string.notification_off : R.string.notification_on));
-        bindButton(views, slot, label, state, on, click, description);
-    }
-
-    /** [filled] buttons are drawn solid (a toggle that is on, or Resume); [state] is the On/Off text of a toggle, if it is one */
-    private void bindButton(RemoteViews views, int slot, String label, String state, boolean filled, PendingIntent click, String description)
-    {
-        int textColor = ContextCompat.getColor(this, filled ? R.color.md_on_primary : R.color.md_on_surface);
-
-        views.setViewVisibility(NOTIFICATION_BUTTONS[slot], View.VISIBLE);
-        views.setInt(NOTIFICATION_BUTTONS[slot], "setBackgroundResource", filled ? R.drawable.notif_button_on : R.drawable.notif_button_off);
-        views.setTextViewText(NOTIFICATION_LABELS[slot], label);
-        views.setTextColor(NOTIFICATION_LABELS[slot], textColor);
-
-        if (state != null)
-        {
-            views.setViewVisibility(NOTIFICATION_STATES[slot], View.VISIBLE);
-            views.setTextViewText(NOTIFICATION_STATES[slot], state);
-            views.setTextColor(NOTIFICATION_STATES[slot], textColor);
-        }
-        else
-        {
-            views.setViewVisibility(NOTIFICATION_STATES[slot], View.GONE);
-        }
-
-        views.setContentDescription(NOTIFICATION_BUTTONS[slot], description != null ? description : label);
-        views.setOnClickPendingIntent(NOTIFICATION_BUTTONS[slot], click);
-    }
-
     private void createVirtualDisplay()
     {
         mDisplayManager = (DisplayManager) getSystemService(DISPLAY_SERVICE);
@@ -452,17 +365,5 @@ public class MainService extends Service implements Stoppable {
         {
             oldReader.close();
         }
-    }
-
-    private String createNotificationChannel()
-    {
-        String channelId = Constants.KAKUKAKU_CHANNEL_ID;
-        String channelName = Constants.KAKUKAKU_CHANNEL_NAME;
-
-        NotificationChannel channel = new NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_LOW);
-        NotificationManager service = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        service.createNotificationChannel(channel);
-
-        return channelId;
     }
 }

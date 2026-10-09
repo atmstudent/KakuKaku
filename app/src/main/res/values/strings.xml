@@ -29,8 +29,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" AN
     <string name="notification_running">KakuKaku is running</string>
     <string name="notification_paused">KakuKaku is paused</string>
     <string name="notification_pause">Pause</string>
-    <string name="notification_resume">Resume</string>
-    <string name="notification_shutdown">Shutdown</string>
+    <string name="notification_start">Start</string>
     <string name="notification_instant">Instant</string>
     <string name="notification_filter">Filter</string>
     <string name="notification_on">On</string>

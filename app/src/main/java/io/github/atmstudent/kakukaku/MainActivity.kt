@@ -25,6 +25,9 @@ class MainActivity : AppCompatActivity()
 
     private lateinit var mStartKakuKakuIntent: Intent
 
+    // Opened with the Start button of the notification: go back to the app that was in front once KakuKaku runs
+    private var mStartedFromNotification = false
+
     private val relaunchAppText = "Relaunch KakuKaku after verifying permission"
 
     private val overlayLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -62,6 +65,7 @@ class MainActivity : AppCompatActivity()
     private val projectionLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode != Activity.RESULT_OK || result.data == null)
         {
+            mStartedFromNotification = false
             Toast.makeText(this, "Check Permission: Record Screen\n$relaunchAppText", Toast.LENGTH_LONG).show()
         }
         else
@@ -81,6 +85,12 @@ class MainActivity : AppCompatActivity()
         setContentView(R.layout.activity_main)
 
         setupKakuKakuDatabasesAndFiles(this)
+
+        if (intent?.getBooleanExtra(EXTRA_START_FROM_NOTIFICATION, false) == true)
+        {
+            mStartedFromNotification = true
+            onStartPressed()
+        }
     }
 
     override fun onPause()
@@ -133,6 +143,11 @@ class MainActivity : AppCompatActivity()
                 {
                     startFragment.onKakuKakuLoaded()
                     startKakuKakuService(this@MainActivity, mStartKakuKakuIntent)
+                    if (mStartedFromNotification)
+                    {
+                        mStartedFromNotification = false
+                        moveTaskToBack(true)
+                    }
                 }
 
                 override fun onTick(millisUntilFinished: Long)

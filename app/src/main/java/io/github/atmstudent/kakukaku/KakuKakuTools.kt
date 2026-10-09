@@ -36,8 +36,7 @@ enum class TextDirection(val value: Int) {
 
 data class Prefs(val textDirectionSetting: TextDirection,
                  val imageFilterSetting: Boolean,
-                 val instantModeSetting: Boolean,
-                 val showHideSetting: Boolean);
+                 val instantModeSetting: Boolean);
 
 // NOTE: The defValue here should match the defValue of the BroadcastReceivers, otherwise
 // they will be out of sync the first time.
@@ -48,8 +47,7 @@ fun getPrefs(context: Context): Prefs
     return Prefs(
             TextDirection.valueOf(prefs.getString(KAKUKAKU_PREF_TEXT_DIRECTION, TextDirection.AUTO.toString()).toString()),
             prefs.getBoolean(KAKUKAKU_PREF_IMAGE_FILTER, false),
-            prefs.getBoolean(KAKUKAKU_PREF_INSTANT_MODE, false),
-            prefs.getBoolean(KAKUKAKU_PREF_SHOW_HIDE, true))
+            prefs.getBoolean(KAKUKAKU_PREF_INSTANT_MODE, false))
 }
 
 fun toJson(obj: Any): String
