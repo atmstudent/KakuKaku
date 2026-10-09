@@ -70,8 +70,9 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" AN
     <string name="dictionary_builtin_subtitle">JMdict and KANJIDIC, October 2026</string>
     <string name="dictionary_update_text">JMdict is updated almost daily. Download <b>JMdict_english.zip</b>, then import it here to replace the old copy.</string>
     <string name="dictionary_get_jmdict">Get the newest JMdict</string>
-    <string name="dictionary_format_text">Import dictionaries in Yomitan format: a <b>.zip</b> file (not unpacked) with <b>index.json</b> and <b>term_bank_N.json</b> or <b>kanji_bank_N.json</b> files.\n\nFind dictionaries on the Yomitan wiki, for example Jitendex, JMdict, JMnedict, KANJIDIC and Wiktionary.\n\nWords are looked up in one dictionary at a time. Kanji details always come from the built-in dictionary.</string>
-    <string name="dictionary_more">Browse dictionaries on the Yomitan wiki</string>
+    <string name="dictionary_format_text">Import dictionaries in Yomitan format: a <b>.zip</b> file (not unpacked) with <b>index.json</b> and <b>term_bank_N.json</b> or <b>kanji_bank_N.json</b> files. Words are looked up in one dictionary at a time. Kanji details always come from the built-in dictionary.</string>
+    <string name="dictionary_find_text">Find more dictionaries on the Yomitan wiki, for example Jitendex, JMdict, JMnedict, KANJIDIC and Wiktionary.</string>
+    <string name="dictionary_more">Browse Yomitan wiki</string>
     <string name="dictionary_delete_confirm">Delete \"%1$s\"? You can import it again later.</string>
     <string name="dictionary_delete_action">Delete</string>
     <string name="dictionary_cancel">Cancel</string>

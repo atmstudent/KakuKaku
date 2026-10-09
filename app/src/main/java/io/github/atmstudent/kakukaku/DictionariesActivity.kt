@@ -5,7 +5,10 @@ import android.os.Bundle
 import android.content.Intent
 import android.view.LayoutInflater
 import android.view.View
-import android.text.TextUtils
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.TextView
+import com.google.android.material.button.MaterialButton
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
@@ -44,7 +47,8 @@ class DictionariesActivity : AppCompatActivity()
         var importButton = binding.sectionImport
     }
 
-    private class InfoContent(val title: Int, val message: CharSequence, val links: List<Pair<Int, String>> = emptyList())
+    /** The text of an info popup: paragraphs, and buttons (label, link) between them */
+    private class InfoContent(val title: Int, val blocks: List<Any>)
 
     private val mSections = ArrayList<Section>()
 
@@ -76,14 +80,18 @@ class DictionariesActivity : AppCompatActivity()
         mBinding.toolbar.setNavigationOnClickListener { finish() }
 
         addSection(Section(null, R.string.dictionary_select_header,
-                { InfoContent(R.string.dictionary_select_header, TextUtils.concat(getText(R.string.dictionary_update_text), "\n\n", getText(R.string.dictionary_format_text)),
-                        listOf(Pair(R.string.dictionary_get_jmdict, JMDICT_RELEASES_URL), Pair(R.string.dictionary_more, YOMITAN_DICTIONARIES_URL))) },
+                { InfoContent(R.string.dictionary_select_header, listOf(
+                        getText(R.string.dictionary_format_text),
+                        getText(R.string.dictionary_update_text),
+                        Pair(R.string.dictionary_get_jmdict, JMDICT_RELEASES_URL),
+                        getText(R.string.dictionary_find_text),
+                        Pair(R.string.dictionary_more, YOMITAN_DICTIONARIES_URL))) },
                 R.string.dictionary_import), mPicker)
         addSection(Section(MetaKind.FREQUENCY, R.string.frequency_header,
-                { InfoContent(R.string.frequency_header, getText(R.string.frequency_help)) },
+                { InfoContent(R.string.frequency_header, listOf(getText(R.string.frequency_help))) },
                 R.string.frequency_import), mFrequencyPicker)
         addSection(Section(MetaKind.PITCH, R.string.pitch_header,
-                { InfoContent(R.string.pitch_header, getText(R.string.pitch_help)) },
+                { InfoContent(R.string.pitch_header, listOf(getText(R.string.pitch_help))) },
                 R.string.pitch_import), mPitchPicker)
 
         refresh()
@@ -101,13 +109,38 @@ class DictionariesActivity : AppCompatActivity()
 
     private fun showInfo(content: InfoContent)
     {
-        val dialog = MaterialAlertDialogBuilder(this)
+        val density = resources.displayMetrics.density
+        val column = LinearLayout(this)
+        column.orientation = LinearLayout.VERTICAL
+        column.setPadding((24 * density).toInt(), (8 * density).toInt(), (24 * density).toInt(), 0)
+
+        for (block in content.blocks)
+        {
+            if (block is CharSequence)
+            {
+                val text = TextView(this)
+                text.text = block
+                text.setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyMedium)
+                text.setPadding(0, (8 * density).toInt(), 0, (8 * density).toInt())
+                column.addView(text)
+            }
+            else if (block is Pair<*, *>)
+            {
+                val button = MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle)
+                button.setText(block.first as Int)
+                button.setOnClickListener { openLink(block.second as String) }
+                column.addView(button)
+            }
+        }
+
+        val scroll = ScrollView(this)
+        scroll.addView(column)
+
+        MaterialAlertDialogBuilder(this)
                 .setTitle(content.title)
-                .setMessage(content.message)
+                .setView(scroll)
                 .setNegativeButton(R.string.dictionary_close, null)
-        if (content.links.isNotEmpty()) dialog.setPositiveButton(content.links[0].first) { _, _ -> openLink(content.links[0].second) }
-        if (content.links.size > 1) dialog.setNeutralButton(content.links[1].first) { _, _ -> openLink(content.links[1].second) }
-        dialog.show()
+                .show()
     }
 
     override fun onDestroy()
