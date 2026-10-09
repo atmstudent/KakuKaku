@@ -238,7 +238,19 @@ class OcrRunnable(context: Context, private var mCaptureWindow: CaptureWindow?) 
         val displayData = DisplayDataOcr(bitmap, boxParams, ocrParams.instantMode, ocrChars)
 
         // Furigana is recognised as small lines of its own and would end up in the middle of the text
-        val lines = visionText.textBlocks.flatMap { it.lines }
+        val recognisedLines = visionText.textBlocks.flatMap { it.lines }
+
+        // Vertical text is read column by column from the right; ML Kit does not promise that order
+        val lines = if (ocrParams.textDirection == TextDirection.VERTICAL)
+        {
+            val order = ReadingOrder.verticalColumns(recognisedLines.map { line ->
+                val box = line.boundingBox
+                if (box == null) OcrBox(0, 0, 0, 0) else OcrBox(box.left, box.top, box.right, box.bottom)
+            })
+            Log.d(TAG, "Vertical lines as recognised: " + recognisedLines.joinToString(" | ") { "${it.text} ${it.boundingBox}" })
+            order.map { recognisedLines[it] }
+        }
+        else recognisedLines
         val furigana = if (Furigana.isEnabled(mContext)) findFurigana(lines) else emptySet()
 
         val keepLineBreaks = !AppSettings.stripLineBreaks(mContext)
