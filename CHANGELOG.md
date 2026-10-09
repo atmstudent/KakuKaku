@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.0.0
+
+- Notification with buttons: Instant mode, Filter and Pause. Pause leaves the notification with a Start button, so you can continue from there. The buttons use the system colours on Android 12 and newer.
+- Instant mode scans whenever the capture box is released, for any box size.
+- Furigana is stripped from scanned and from selected or shared text.
+- Settings screen: strip furigana, strip line breaks (keep each break, which ends a word lookup), popup text size, popup at the top or bottom of the screen, and a light or dark popup.
+- Dictionaries screen reworked: Dictionary, Word frequency and Pitch accent work the same way. Import several of each, choose one (or None for frequency and pitch accent), delete them. The explanations are behind the (i) buttons. A pitch accent or frequency dictionary imported earlier is kept and stays selected.
+- Tutorial with annotated screenshots (menu: Tutorial).
+- The definitions slide in only for the first selection.
+- Fixed a crash when the edit window was opened for a character at the edge of the scanned image.
+
 ## 1.1.0
 
 - Words are found by their reading too: とても finds 迚も, ネコ finds 猫. This also works in imported dictionaries.
