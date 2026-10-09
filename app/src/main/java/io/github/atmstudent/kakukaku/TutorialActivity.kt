@@ -1,5 +1,7 @@
 package io.github.atmstudent.kakukaku
 
+import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -85,6 +87,13 @@ class TutorialActivity : AppCompatActivity()
             holder.binding.tutorialSlideTitle.setText(slide.title)
             holder.binding.tutorialSlideText.setText(slide.text)
             holder.binding.tutorialSlideImage.setImageResource(slide.image)
+
+            // The default shadow falls mostly below the card; only the ambient part of it spreads on all sides
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
+            {
+                holder.binding.tutorialCard.outlineSpotShadowColor = Color.TRANSPARENT
+                holder.binding.tutorialCard.outlineAmbientShadowColor = Color.BLACK
+            }
         }
 
         override fun getItemCount() = mSlides.size
