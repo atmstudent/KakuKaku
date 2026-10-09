@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
@@ -19,6 +20,10 @@ import androidx.core.content.ContextCompat
 object ServiceNotification
 {
     const val NOTIFICATION_ID = 1
+
+    // The Pause/Start label is larger than the toggle labels; the collapsed notification only has room for so much
+    private const val EXPANDED_ACTION_SP = 16f
+    private const val COLLAPSED_ACTION_SP = 14f
 
     private val BUTTONS = intArrayOf(R.id.notif_btn1, R.id.notif_btn2, R.id.notif_btn3)
     private val LABELS = intArrayOf(R.id.notif_btn1_label, R.id.notif_btn2_label, R.id.notif_btn3_label)
@@ -62,6 +67,7 @@ object ServiceNotification
     {
         val views = RemoteViews(context.packageName, layout)
         views.setTextViewText(R.id.notif_title, title)
+        val actionSize = if (layout == R.layout.notification_collapsed) COLLAPSED_ACTION_SP else EXPANDED_ACTION_SP
 
         val prefs = getPrefs(context)
         bindToggle(context, views, 0, context.getString(R.string.notification_instant), prefs.instantModeSetting,
@@ -72,6 +78,7 @@ object ServiceNotification
         if (running)
         {
             bindButton(context, views, 2, context.getString(R.string.notification_pause), null, false, broadcast(context, REQUEST_SERVICE_PAUSE, MainService.PauseMainService::class.java), null)
+            views.setTextViewTextSize(LABELS[2], TypedValue.COMPLEX_UNIT_SP, actionSize)
         }
         else
         {
@@ -81,6 +88,7 @@ object ServiceNotification
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
             bindButton(context, views, 2, context.getString(R.string.notification_start), null, true,
                     PendingIntent.getActivity(context, REQUEST_SERVICE_START, start, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT), null)
+            views.setTextViewTextSize(LABELS[2], TypedValue.COMPLEX_UNIT_SP, actionSize)
         }
 
         return views
