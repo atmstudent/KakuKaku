@@ -9,6 +9,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.materialswitch.MaterialSwitch
+import io.github.atmstudent.kakukaku.Anki.AnkiSettings
 import io.github.atmstudent.kakukaku.Furigana.Furigana
 import io.github.atmstudent.kakukaku.databinding.ActivitySettingsBinding
 
@@ -50,6 +51,8 @@ class SettingsActivity : AppCompatActivity()
         addChoice(R.string.overlay_theme_title,
                 listOf(R.string.overlay_theme_system, R.string.overlay_theme_light, R.string.overlay_theme_dark),
                 { AppSettings.overlayTheme(this) }, { AppSettings.setOverlayTheme(this, it) })
+        addSwitch(R.string.anki_show_anki_icon, R.string.anki_show_anki_icon_summary, AnkiSettings.showAnkiIcon(this)) { AnkiSettings.setShowAnkiIcon(this, it) }
+        addSwitch(R.string.anki_show_list_icon, R.string.anki_show_list_icon_summary, AnkiSettings.showListIcon(this)) { AnkiSettings.setShowListIcon(this, it) }
     }
 
     private fun addHeader(@StringRes title: Int)

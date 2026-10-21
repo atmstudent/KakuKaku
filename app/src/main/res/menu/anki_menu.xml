@@ -1,0 +1,8 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/menu_anki_info"
+        android:icon="@drawable/ic_info"
+        android:title="@string/anki_markers_info"
+        app:showAsAction="always" />
+</menu>

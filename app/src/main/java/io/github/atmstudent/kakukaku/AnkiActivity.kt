@@ -63,6 +63,44 @@ class AnkiActivity : AppCompatActivity()
             WindowInsetsCompat.CONSUMED
         }
         mBinding.toolbar.setNavigationOnClickListener { finish() }
+        mBinding.toolbar.inflateMenu(R.menu.anki_menu)
+        mBinding.toolbar.setOnMenuItemClickListener {
+            if (it.itemId == R.id.menu_anki_info) showMarkerInfo()
+            true
+        }
+    }
+
+    /** What each marker is replaced by */
+    private fun showMarkerInfo()
+    {
+        val density = resources.displayMetrics.density
+        val column = android.widget.LinearLayout(this)
+        column.orientation = android.widget.LinearLayout.VERTICAL
+        column.setPadding((24 * density).toInt(), (8 * density).toInt(), (24 * density).toInt(), 0)
+
+        val intro = TextView(this)
+        intro.setText(R.string.anki_markers_info_intro)
+        intro.setPadding(0, 0, 0, (12 * density).toInt())
+        column.addView(intro)
+
+        for (marker in Marker.values())
+        {
+            val line = TextView(this)
+            val text = android.text.SpannableStringBuilder("{${marker.id}}")
+            text.setSpan(android.text.style.StyleSpan(android.graphics.Typeface.BOLD), 0, text.length, 0)
+            text.append("\n").append(getString(MarkerLabels.description(marker)))
+            line.text = text
+            line.setPadding(0, (6 * density).toInt(), 0, (6 * density).toInt())
+            column.addView(line)
+        }
+
+        val scroll = android.widget.ScrollView(this)
+        scroll.addView(column)
+        MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.anki_markers_info)
+                .setView(scroll)
+                .setPositiveButton(R.string.dictionary_close, null)
+                .show()
     }
 
     override fun onResume()
@@ -150,10 +188,6 @@ class AnkiActivity : AppCompatActivity()
                 for (field in fields) addField(field)
                 addTags()
             }
-
-            addHeader(R.string.anki_header_popup)
-            addSwitch(R.string.anki_show_anki_icon, AnkiSettings.showAnkiIcon(this)) { AnkiSettings.setShowAnkiIcon(this, it) }
-            addSwitch(R.string.anki_show_list_icon, AnkiSettings.showListIcon(this)) { AnkiSettings.setShowListIcon(this, it) }
         }
     }
 
@@ -183,19 +217,6 @@ class AnkiActivity : AppCompatActivity()
         row.findViewById<TextView>(R.id.setting_summary).text = summary
         mBinding.ankiList.addView(row)
         return row
-    }
-
-    private fun addSwitch(title: Int, initial: Boolean, onChange: (Boolean) -> Unit)
-    {
-        val row = addRow(title, "")
-        row.findViewById<TextView>(R.id.setting_summary).visibility = View.GONE
-        val toggle = row.findViewById<MaterialSwitch>(R.id.setting_switch)
-        toggle.visibility = View.VISIBLE
-        toggle.isChecked = initial
-        row.setOnClickListener {
-            toggle.isChecked = !toggle.isChecked
-            onChange(toggle.isChecked)
-        }
     }
 
     private fun addChoice(title: Int, current: String, options: Map<Long, String>, onChosen: (Long, String) -> Unit)
@@ -264,17 +285,17 @@ class AnkiActivity : AppCompatActivity()
             }
         })
 
-        row.findViewById<MaterialButton>(R.id.field_insert).setOnClickListener {
-            val markers = Marker.values()
-            MaterialAlertDialogBuilder(this)
-                    .setTitle(R.string.anki_insert_marker)
-                    .setItems(markers.map { getString(MarkerLabels.label(it)) }.toTypedArray()) { _, which ->
-                        val text = "{${markers[which].id}}"
-                        val at = edit.selectionStart.coerceAtLeast(0)
-                        edit.text?.insert(at, text)
-                    }
-                    .setNegativeButton(R.string.dictionary_cancel, null)
-                    .show()
+        // A drop-down under the button: the marker is put where the cursor is
+        val insert = row.findViewById<MaterialButton>(R.id.field_insert)
+        insert.setOnClickListener {
+            val menu = android.widget.PopupMenu(this, insert)
+            for ((index, marker) in Marker.values().withIndex()) menu.menu.add(0, index, index, "{${marker.id}}")
+            menu.setOnMenuItemClickListener { item ->
+                val at = edit.selectionStart.coerceAtLeast(0)
+                edit.text?.insert(at, item.title)
+                true
+            }
+            menu.show()
         }
 
         mBinding.ankiList.addView(row)
