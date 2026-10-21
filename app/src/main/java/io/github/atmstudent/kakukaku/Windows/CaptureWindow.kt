@@ -48,6 +48,8 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
     private var mInLongPress: Boolean = false
     private var mProcessingPreview: Boolean = false
     private var mProcessingOcr: Boolean = false
+    // The picture of the last full scan: mScreenshotForOcr is cleared when a scan is done, but a setting change can scan it again
+    private var mLastScan: ScreenshotForOcr? = null
     private var mScreenshotForOcr: ScreenshotForOcr? = null
 
     private val screenshotForOcr: ScreenshotForOcr?
@@ -267,6 +269,7 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
         mProcessingPreview = false
         mProcessingOcr = false
         mScreenshotForOcr = null
+        mLastScan = null
 
         mPrefs = getPrefs(context)
 
@@ -490,6 +493,16 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
         }
     }
 
+    /** Scans the picture of the last scan again, e.g. after a setting that changes what is read was changed */
+    fun rescan()
+    {
+        val last = mLastScan ?: return
+        if (mProcessingOcr) return
+
+        mScreenshotForOcr = last
+        performOcr(false)
+    }
+
     private fun performOcr(instant: Boolean)
     {
         mProcessingOcr = true
@@ -510,6 +523,8 @@ class CaptureWindow(context: Context, windowCoordinator: WindowCoordinator) : Wi
                 mProcessingOcr = false
                 return
             }
+
+            if (!instant) mLastScan = mScreenshotForOcr
 
             val processedImage = if (mPrefs!!.imageFilterSetting) mScreenshotForOcr!!.cachedScreenshot else mScreenshotForOcr!!.crop
 

@@ -58,6 +58,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" AN
     <string name="tutorial_7_text">With <b>Filter</b> on, the box adds a <b>black and white filter (1)</b>. Press and hold the box and slide your finger <b>left or right (2)</b> to change the threshold.</string>
     <string name="settings_title">Settings</string>
     <string name="settings_text_header">Text</string>
+    <string name="popup_strip_furigana">Strip furigana</string>
     <string name="settings_recognition_header">Text recognition</string>
     <string name="ocr_engine_title">Recognition engine</string>
     <string name="ocr_engine_ml_kit">ML Kit (default)</string>

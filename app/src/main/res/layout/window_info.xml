@@ -81,6 +81,20 @@
 
                 </ScrollView>
 
+                <!-- Strip furigana on or off; filled while it is on -->
+                <TextView
+                    android:id="@+id/furigana_toggle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="end"
+                    android:layout_marginTop="2dp"
+                    android:paddingLeft="12dp"
+                    android:paddingRight="12dp"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp"
+                    android:text="@string/popup_strip_furigana"
+                    android:textSize="12sp" />
+
             </LinearLayout>
 
         </LinearLayout>

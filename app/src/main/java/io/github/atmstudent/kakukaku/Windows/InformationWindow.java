@@ -31,6 +31,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.github.atmstudent.kakukaku.Constants;
+import androidx.core.content.ContextCompat;
+import io.github.atmstudent.kakukaku.Search.BackgroundTask;
+import io.github.atmstudent.kakukaku.Furigana.Furigana;
 import io.github.atmstudent.kakukaku.Database.JmDictDatabase.Models.EntryOptimized;
 import io.github.atmstudent.kakukaku.KakuKakuTools;
 import io.github.atmstudent.kakukaku.LangUtils;
@@ -67,6 +70,9 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
     private TextSwitcher mDictResults;
     private Searcher mSearcher;
     private boolean mTextOnlyLookup;
+    private TextView mFuriganaToggle;
+    // The text of a share-menu lookup before furigana was stripped (null for a scan)
+    private String mRawText;
     // The card is at the bottom of the screen (the setting, in portrait only); swipes and the slide-out then go down
     private boolean mAtBottom;
     // The definitions slide in when the popup shows its first result, not when another character is selected
@@ -82,6 +88,8 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
         mInfoWindow = window.findViewById(R.id.info_window);
         mKanjiGrid = window.findViewById(R.id.kanji_grid);
         mDictResults = window.findViewById(R.id.dict_results);
+        mFuriganaToggle = window.findViewById(R.id.furigana_toggle);
+        mFuriganaToggle.setOnClickListener(v -> toggleFurigana());
 
         mKanjiGrid.setDependencies(windowCoordinator, this);
 
@@ -108,23 +116,80 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
     public void setResult(DisplayData displayData)
     {
         mSearchedChars = new ArrayList<>();
+        mRawText = null;
 
         mKanjiGrid.removeAllViews();
         mKanjiGrid.setText(displayData);
+
+        // Tesseract scans keep the furigana, so the switch would do nothing there
+        updateFuriganaToggle(AppSettings.ocrEngine(context) == AppSettings.ENGINE_ML_KIT);
     }
 
-    public void setResult(String textResult)
+    /** Text from the share menu: [textResult] is shown, [rawText] (with furigana) is what the switch strips again */
+    public void setResult(String textResult, String rawText)
     {
-        List<String> charList = KakuKakuTools.splitTextByChar(textResult);
+        mRawText = rawText;
+        showText(textResult);
+        mTextOnlyLookup = true;
+
+        updateFuriganaToggle(true);
+    }
+
+    private void showText(String text)
+    {
+        mSearchedChars = new ArrayList<>();
+
+        List<String> charList = KakuKakuTools.splitTextByChar(text);
         List<ISquareChar> squareCharList = new ArrayList<>();
         DisplayData displayData = new DisplayData(squareCharList);
         for (String c : charList) squareCharList.add(new SquareChar(displayData, c));
         displayData.assignIndicies();
 
+        mKanjiGrid.removeAllViews();
         mKanjiGrid.setText(displayData);
-        performSearch(displayData.getSquareChars().get(0));
+        if (!displayData.getSquareChars().isEmpty()) performSearch(displayData.getSquareChars().get(0));
+    }
 
-        mTextOnlyLookup = true;
+    private void updateFuriganaToggle(boolean available)
+    {
+        mFuriganaToggle.setVisibility(available ? View.VISIBLE : View.GONE);
+
+        boolean on = Furigana.INSTANCE.isEnabled(context);
+        mFuriganaToggle.setBackgroundResource(on ? R.drawable.bg_chip_on : R.drawable.bg_chip_off);
+        mFuriganaToggle.setTextColor(ContextCompat.getColor(context, on ? R.color.window_surface : R.color.window_on_surface));
+    }
+
+    /** The switch: remembers the choice (it is the one in Settings) and shows the text again with or without furigana */
+    private void toggleFurigana()
+    {
+        Furigana.INSTANCE.setEnabled(context, !Furigana.INSTANCE.isEnabled(context));
+        updateFuriganaToggle(true);
+
+        if (mRawText != null)
+        {
+            final Context appContext = context.getApplicationContext();
+            final String raw = mRawText;
+            new BackgroundTask<String>()
+            {
+                @Override
+                protected String doInBackground()
+                {
+                    try { return Furigana.INSTANCE.strip(appContext, raw); } catch (Exception e) { return raw; }
+                }
+
+                @Override
+                protected void onPostExecute(String result)
+                {
+                    // Not if the popup was closed or filled with something else in the meantime
+                    if (mRawText == raw) showText(result);
+                }
+            }.execute();
+        }
+        else if (windowCoordinator != null && windowCoordinator.hasWindow(Constants.WINDOW_CAPTURE))
+        {
+            // A scan: read the same picture again, now with the new setting
+            ((CaptureWindow) windowCoordinator.getWindow(Constants.WINDOW_CAPTURE)).rescan();
+        }
     }
 
     public void copyText()
