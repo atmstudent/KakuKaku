@@ -14,6 +14,8 @@ import android.graphics.Point;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.ImageView;
+import android.view.animation.AnimationUtils;
 import io.github.atmstudent.kakukaku.AnkiActivity;
 import io.github.atmstudent.kakukaku.Anki.Marker;
 import io.github.atmstudent.kakukaku.Anki.AnkiSettings;
@@ -24,10 +26,6 @@ import io.github.atmstudent.kakukaku.WordList.WordListStore;
 import io.github.atmstudent.kakukaku.Anki.TermContext;
 import java.util.Map;
 import android.widget.Toast;
-import android.text.style.ImageSpan;
-import android.text.style.ClickableSpan;
-import android.text.method.LinkMovementMethod;
-import android.text.TextPaint;
 import android.text.Spanned;
 import android.graphics.drawable.Drawable;
 import io.github.atmstudent.kakukaku.AppSettings;
@@ -38,7 +36,6 @@ import android.view.ViewConfiguration;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
-import android.widget.TextSwitcher;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -83,7 +80,7 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
     private float mMaxFlingVelocity;
     private LinearLayout mInfoWindow;
     private KanjiGridView mKanjiGrid;
-    private TextSwitcher mDictResults;
+    private LinearLayout mDictResults;
     private Searcher mSearcher;
     private boolean mTextOnlyLookup;
     private TextView mFuriganaToggle;
@@ -110,11 +107,6 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
         mKanjiGrid = window.findViewById(R.id.kanji_grid);
         mDictResults = window.findViewById(R.id.dict_results);
         mFuriganaToggle = window.findViewById(R.id.furigana_toggle);
-        // The icons next to the definitions are links
-        for (int i = 0; i < mDictResults.getChildCount(); i++)
-        {
-            ((TextView) mDictResults.getChildAt(i)).setMovementMethod(LinkMovementMethod.getInstance());
-        }
         mFuriganaToggle.setOnClickListener(v -> toggleFurigana());
 
         mKanjiGrid.setDependencies(windowCoordinator, this);
@@ -324,15 +316,8 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
     @Override
     public void show()
     {
-        mDictResults.setText("");
+        mDictResults.removeAllViews();
         mFirstResultPending = true;
-
-        // The text size setting may have changed since the popup was last shown
-        float textSizeSp = 14f * AppSettings.popupScale(context);
-        for (int i = 0; i < mDictResults.getChildCount(); i++)
-        {
-            ((TextView) mDictResults.getChildAt(i)).setTextSize(TypedValue.COMPLEX_UNIT_SP, textSizeSp);
-        }
 
         applyOrientationLayout();
 
@@ -516,11 +501,17 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
 
     private void displayResults(List<JmSearchResult> jmResults)
     {
-        SpannableStringBuilder sb = new SpannableStringBuilder();
+        mDictResults.removeAllViews();
 
-        for (JmSearchResult jmSearchResult : jmResults)
+        // The text size setting may have changed since the popup was last shown
+        float textSizeSp = 14f * AppSettings.popupScale(context);
+        int textColor = ContextCompat.getColor(mDictResults.getContext(), R.color.window_on_surface);
+
+        for (int index = 0; index < jmResults.size(); index++)
         {
-            int headingStart = sb.length();
+            final JmSearchResult jmSearchResult = jmResults.get(index);
+
+            SpannableStringBuilder sb = new SpannableStringBuilder();
             sb.append(jmSearchResult.getEntry().getKanji());
 
             if (!jmSearchResult.getEntry().getReadings().isEmpty()){
@@ -552,38 +543,49 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
                 sb.append(deinfReason);
             }
 
-            HeadingStyle.apply(context, sb, headingStart, pitchStart, pitchEnd, reasonStart);
+            HeadingStyle.apply(context, sb, 0, pitchStart, pitchEnd, reasonStart);
 
-            // Icons: send the term to Anki, save it to the word list
-            final JmSearchResult termResult = jmSearchResult;
+            LinearLayout row = new LinearLayout(mDictResults.getContext());
+            row.setOrientation(LinearLayout.VERTICAL);
+            LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            if (index > 0) rowParams.topMargin = KakuKakuTools.dpToPx(context, 16);
+
+            // The heading, and the icons at the right edge: send the term to Anki, save it to the word list
+            LinearLayout heading = new LinearLayout(mDictResults.getContext());
+            heading.setOrientation(LinearLayout.HORIZONTAL);
+
+            TextView headingText = new TextView(mDictResults.getContext());
+            headingText.setTextColor(textColor);
+            headingText.setTextSize(TypedValue.COMPLEX_UNIT_SP, textSizeSp);
+            headingText.setText(sb);
+            heading.addView(headingText, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
             if (AnkiSettings.INSTANCE.showAnkiIcon(context))
             {
-                appendIcon(sb, mAnkiKeys.contains(termKey(termResult)) ? R.drawable.ic_check : R.drawable.ic_anki, () -> addToAnki(termResult));
+                addIconButton(heading, mAnkiKeys.contains(termKey(jmSearchResult)) ? R.drawable.ic_check : R.drawable.ic_anki, textColor,
+                        R.string.anki_add_description, () -> addToAnki(jmSearchResult));
             }
             if (AnkiSettings.INSTANCE.showListIcon(context))
             {
-                appendIcon(sb, mSavedKeys.contains(termKey(termResult)) ? R.drawable.ic_check : R.drawable.ic_list_add, () -> saveToWordList(termResult));
+                addIconButton(heading, mSavedKeys.contains(termKey(jmSearchResult)) ? R.drawable.ic_check : R.drawable.ic_list_add, textColor,
+                        R.string.word_list_save_description, () -> saveToWordList(jmSearchResult));
             }
+            row.addView(heading, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-            sb.append("\n");
-            sb.append(getMeaning(jmSearchResult.getEntry()));
-            sb.append("\n\n");
-        }
+            TextView meaning = new TextView(mDictResults.getContext());
+            meaning.setTextColor(textColor);
+            meaning.setTextSize(TypedValue.COMPLEX_UNIT_SP, textSizeSp);
+            meaning.setText(getMeaning(jmSearchResult.getEntry()));
+            row.addView(meaning, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        if (sb.length() > 2)
-        {
-            sb.delete(sb.length() - 2, sb.length());
+            mDictResults.addView(row, rowParams);
         }
 
         if (mFirstResultPending)
         {
-            mDictResults.setText(sb);
+            // The definitions slide in the first time; selecting another character replaces them in place
+            mDictResults.startAnimation(AnimationUtils.loadAnimation(context, R.anim.slide_in));
             mFirstResultPending = false;
-        }
-        else
-        {
-            // No animation: the text is replaced in place
-            mDictResults.setCurrentText(sb);
         }
     }
 
@@ -592,33 +594,18 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
         return result.getEntry().getKanji() + "|" + result.getEntry().getReadings();
     }
 
-    /** An icon that can be tapped, after the heading of a result */
-    private void appendIcon(SpannableStringBuilder sb, int drawableRes, final Runnable onClick)
+    /** An icon button at the right end of a result's heading */
+    private void addIconButton(LinearLayout parent, int drawableRes, int color, int descriptionRes, final Runnable onClick)
     {
+        ImageView button = new ImageView(parent.getContext());
         Drawable icon = ContextCompat.getDrawable(context, drawableRes).mutate();
-        int size = KakuKakuTools.dpToPx(context, 22);
-        icon.setBounds(0, 0, size, size);
-        // The colour of the text, which follows the popup theme
-        icon.setTint(((TextView) mDictResults.getCurrentView()).getCurrentTextColor());
-
-        sb.append("  ");
-        int start = sb.length();
-        sb.append("\uFFFC");
-        sb.setSpan(new ImageSpan(icon, ImageSpan.ALIGN_BOTTOM), start, start + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        sb.setSpan(new ClickableSpan()
-        {
-            @Override
-            public void onClick(@NotNull View widget)
-            {
-                onClick.run();
-            }
-
-            @Override
-            public void updateDrawState(@NotNull TextPaint ds)
-            {
-                ds.setUnderlineText(false);
-            }
-        }, start, start + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        icon.setTint(color);
+        button.setImageDrawable(icon);
+        button.setContentDescription(context.getString(descriptionRes));
+        int padding = KakuKakuTools.dpToPx(context, 8);
+        button.setPadding(padding, padding, padding, padding);
+        button.setOnClickListener(v -> onClick.run());
+        parent.addView(button, new LinearLayout.LayoutParams(KakuKakuTools.dpToPx(context, 40), KakuKakuTools.dpToPx(context, 40)));
     }
 
     /** Adds a card for the term to AnkiDroid, as set up in the Anki menu */

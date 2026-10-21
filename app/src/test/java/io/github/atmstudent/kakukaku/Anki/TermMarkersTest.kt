@@ -25,7 +25,6 @@ class TermMarkersTest
         assertEquals("食べた", values["cloze-body"])
         assertEquals("食[た]べる", values["furigana-plain"])
         assertEquals("<ruby>食<rt>た</rt></ruby>べる", values["furigana"])
-        assertEquals("[2][0]", values["pitch-accents"])
         assertEquals("2, 0", values["pitch-accent-positions"])
         assertEquals("<ol><li>(v1,vt) to eat</li><li>to live on &lt;food&gt;</li></ol>", values["glossary"])
     }
@@ -49,7 +48,6 @@ class TermMarkersTest
     fun withoutPitchTheMarkersAreEmpty()
     {
         val values = context.copy(pitch = "", glossary = emptyList()).values()
-        assertEquals("", values["pitch-accents"])
         assertEquals("", values["pitch-accent-positions"])
         assertEquals("", values["glossary"])
     }

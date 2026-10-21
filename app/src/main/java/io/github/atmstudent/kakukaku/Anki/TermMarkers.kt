@@ -14,7 +14,6 @@ enum class Marker(val id: String)
     FURIGANA_PLAIN("furigana-plain"),
     CLOZE_BODY("cloze-body"),
     GLOSSARY("glossary"),
-    PITCH_ACCENTS("pitch-accents"),
     PITCH_ACCENT_POSITIONS("pitch-accent-positions"),
     WRITING("writing"),
     WRITING_FURIGANA("writing-furigana"),
@@ -40,7 +39,7 @@ data class TermContext(
         val clozeBody: String,
         /** The meanings, each with its part of speech (may be empty) */
         val glossary: List<Pair<String, String>>,
-        /** Pitch accent as shown in the popup, such as "[1][0]"; empty if none */
+        /** Pitch accent as shown in the popup, such as "[1][0]"; empty if none (it gives the positions) */
         val pitch: String)
 {
     fun values(): Map<String, String>
@@ -56,7 +55,6 @@ data class TermContext(
                 Marker.FURIGANA_PLAIN.id to FuriganaBuilder.plain(expressionSegments),
                 Marker.CLOZE_BODY.id to clozeBody,
                 Marker.GLOSSARY.id to glossaryHtml(),
-                Marker.PITCH_ACCENTS.id to pitch,
                 Marker.PITCH_ACCENT_POSITIONS.id to pitchPositions(pitch),
                 Marker.WRITING.id to writing,
                 Marker.WRITING_FURIGANA.id to FuriganaBuilder.ruby(writingSegments),

@@ -242,7 +242,8 @@ class AnkiActivity : AppCompatActivity()
     private fun addTags()
     {
         val row = LayoutInflater.from(this).inflate(R.layout.item_anki_field, mBinding.ankiList, false)
-        row.findViewById<TextInputLayout>(R.id.field_layout).hint = getString(R.string.anki_tags)
+        val layout = row.findViewById<TextInputLayout>(R.id.field_layout)
+        layout.hint = getString(R.string.anki_tags)
         val edit = row.findViewById<TextInputEditText>(R.id.field_text)
         edit.setText(AnkiSettings.tags(this))
         edit.addTextChangedListener(object : TextWatcher
@@ -252,7 +253,7 @@ class AnkiActivity : AppCompatActivity()
             override fun afterTextChanged(s: Editable?) = AnkiSettings.setTags(this@AnkiActivity, s.toString())
         })
         row.findViewById<View>(R.id.field_preview).visibility = View.GONE
-        row.findViewById<View>(R.id.field_insert).visibility = View.GONE
+        layout.isEndIconVisible = false
         mBinding.ankiList.addView(row)
     }
 
@@ -286,9 +287,8 @@ class AnkiActivity : AppCompatActivity()
         })
 
         // A drop-down under the button: the marker is put where the cursor is
-        val insert = row.findViewById<MaterialButton>(R.id.field_insert)
-        insert.setOnClickListener {
-            val menu = android.widget.PopupMenu(this, insert)
+        layout.setEndIconOnClickListener {
+            val menu = android.widget.PopupMenu(this, layout)
             for ((index, marker) in Marker.values().withIndex()) menu.menu.add(0, index, index, "{${marker.id}}")
             menu.setOnMenuItemClickListener { item ->
                 val at = edit.selectionStart.coerceAtLeast(0)

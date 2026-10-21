@@ -9,6 +9,9 @@
         android:id="@+id/menu_word_list_export_csv"
         android:title="@string/word_list_export_csv" />
     <item
+        android:id="@+id/menu_word_list_copy"
+        android:title="@string/word_list_copy" />
+    <item
         android:id="@+id/menu_word_list_clear"
         android:title="@string/word_list_clear" />
 </menu>

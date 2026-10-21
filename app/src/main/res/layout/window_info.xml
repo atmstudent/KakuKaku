@@ -60,22 +60,12 @@
                         android:orientation="vertical"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content">
-                        <TextSwitcher
+                        <!-- One row per result: heading with the icons at the right edge, definitions below -->
+                        <LinearLayout
                             android:id="@+id/dict_results"
-                            android:measureAllChildren="false"
-                            android:animateLayoutChanges="true"
-                            android:inAnimation="@anim/slide_in"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content">
-                            <TextView
-                                android:textColor="@color/window_on_surface"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content" />
-                            <TextView
-                                android:textColor="@color/window_on_surface"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content" />
-                        </TextSwitcher>
+                            android:orientation="vertical"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content" />
 
                     </LinearLayout>
 

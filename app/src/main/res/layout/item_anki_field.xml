@@ -11,7 +11,10 @@
         android:id="@+id/field_layout"
         style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        app:endIconContentDescription="@string/anki_insert_marker"
+        app:endIconDrawable="@drawable/ic_arrow_drop_down"
+        app:endIconMode="custom">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/field_text"
@@ -35,12 +38,5 @@
             android:layout_weight="1"
             android:textAppearance="?attr/textAppearanceBodySmall"
             android:textColor="?attr/colorOnSurfaceVariant" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/field_insert"
-            style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/anki_insert_marker" />
     </LinearLayout>
 </LinearLayout>

@@ -28,6 +28,8 @@ class WordListActivity : AppCompatActivity()
     private lateinit var mBinding: ActivityWordListBinding
     private val mExecutor = Executors.newSingleThreadExecutor()
     private var mTerms: List<SavedTerm> = emptyList()
+    // The terms opened to show everything that was saved about them
+    private val mExpanded = HashSet<Long>()
 
     private val mTsvPicker = registerForActivityResult(ActivityResultContracts.CreateDocument("text/tab-separated-values")) { uri -> if (uri != null) export(uri, true) }
     private val mCsvPicker = registerForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri -> if (uri != null) export(uri, false) }
@@ -53,6 +55,7 @@ class WordListActivity : AppCompatActivity()
                 R.id.menu_word_list_information -> chooseInformation()
                 R.id.menu_word_list_export_tsv -> mTsvPicker.launch("word-list.tsv")
                 R.id.menu_word_list_export_csv -> mCsvPicker.launch("word-list.csv")
+                R.id.menu_word_list_copy -> copyAll()
                 R.id.menu_word_list_clear -> confirmClear()
             }
             true
@@ -95,16 +98,38 @@ class WordListActivity : AppCompatActivity()
             val row = ItemSavedTermBinding.inflate(LayoutInflater.from(this), list, false)
             val reading = term.values[Marker.READING.id] ?: ""
             row.savedTitle.text = if (reading.isEmpty() || reading == term.expression) term.expression else "${term.expression} ($reading)"
-            row.savedSubtitle.text = markers.map { HtmlText.plain(term.values[it.id] ?: "") }.filter { it.isNotEmpty() }.joinToString("\n")
+
+            // Closed: the chosen information, cut short. Open (tap the term): everything that was saved about it.
+            val open = term.id in mExpanded
+            val lines = if (open)
+                Marker.values().filter { (term.values[it.id] ?: "").isNotEmpty() }.map { "{${it.id}}\n" + HtmlText.plain(term.values[it.id] ?: "") }
+            else
+                markers.map { HtmlText.plain(term.values[it.id] ?: "") }.filter { it.isNotEmpty() }
+            row.savedSubtitle.text = lines.joinToString(if (open) "\n\n" else "\n")
+            row.savedSubtitle.maxLines = if (open) Int.MAX_VALUE else 2
             row.savedSubtitle.visibility = if (row.savedSubtitle.text.isEmpty()) View.GONE else View.VISIBLE
+            row.root.setOnClickListener {
+                if (open) mExpanded.remove(term.id) else mExpanded.add(term.id)
+                show(mTerms)
+            }
             row.savedDelete.setOnClickListener {
                 mExecutor.execute {
                     WordListStore.get(this).delete(term.id)
-                    runOnUiThread { refresh() }
+                    runOnUiThread { mExpanded.remove(term.id); refresh() }
                 }
             }
             list.addView(row.root)
         }
+    }
+
+    /** All saved terms, as the text of the TSV export, onto the clipboard */
+    private fun copyAll()
+    {
+        if (mTerms.isEmpty()) return
+        val table = WordListExport.table(mTerms, WordListSettings.markers(this), true)
+        val clipboard = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+        clipboard.setPrimaryClip(android.content.ClipData.newPlainText(null, WordListExport.tsv(table)))
+        Snackbar.make(mBinding.root, getString(R.string.word_list_copied, mTerms.size), Snackbar.LENGTH_SHORT).show()
     }
 
     /** The markers shown and exported; all of them are stored, so this can be changed afterwards */
@@ -113,7 +138,7 @@ class WordListActivity : AppCompatActivity()
         val all = Marker.values()
         val chosen = WordListSettings.markers(this).toMutableSet()
         MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.word_list_information)
+                .setTitle(R.string.word_list_information_title)
                 .setMultiChoiceItems(all.map { getString(MarkerLabels.label(it)) }.toTypedArray(), BooleanArray(all.size) { all[it] in chosen }) { _, which, checked ->
                     if (checked) chosen.add(all[which]) else chosen.remove(all[which])
                 }

@@ -14,7 +14,6 @@ object MarkerLabels
         Marker.FURIGANA_PLAIN -> R.string.marker_furigana_plain
         Marker.CLOZE_BODY -> R.string.marker_cloze_body
         Marker.GLOSSARY -> R.string.marker_glossary
-        Marker.PITCH_ACCENTS -> R.string.marker_pitch_accents
         Marker.PITCH_ACCENT_POSITIONS -> R.string.marker_pitch_accent_positions
         Marker.WRITING -> R.string.marker_writing
         Marker.WRITING_FURIGANA -> R.string.marker_writing_furigana
@@ -31,7 +30,6 @@ object MarkerLabels
         Marker.FURIGANA_PLAIN -> R.string.marker_desc_furigana_plain
         Marker.CLOZE_BODY -> R.string.marker_desc_cloze_body
         Marker.GLOSSARY -> R.string.marker_desc_glossary
-        Marker.PITCH_ACCENTS -> R.string.marker_desc_pitch_accents
         Marker.PITCH_ACCENT_POSITIONS -> R.string.marker_desc_pitch_accent_positions
         Marker.WRITING -> R.string.marker_desc_writing
         Marker.WRITING_FURIGANA -> R.string.marker_desc_writing_furigana

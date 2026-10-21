@@ -59,7 +59,10 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" AN
     <string name="menu_word_list">Word list</string>
     <string name="word_list_title">Word list</string>
     <string name="word_list_empty">No saved words yet. Tap the list icon next to a definition to save it here.</string>
-    <string name="word_list_information">Information saved…</string>
+    <string name="word_list_information">Information included…</string>
+    <string name="word_list_information_title">Information shown and exported</string>
+    <string name="word_list_copy">Copy all text</string>
+    <string name="word_list_copied">Copied %1$d words</string>
     <string name="word_list_export_tsv">Export as TSV</string>
     <string name="word_list_export_csv">Export as CSV</string>
     <string name="word_list_clear">Clear the list</string>
@@ -76,7 +79,6 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" AN
     <string name="marker_furigana_plain">{furigana-plain}: term with furigana in brackets, 日本語[にほんご]</string>
     <string name="marker_cloze_body">{cloze-body}: the term as it appeared in the text (inflected)</string>
     <string name="marker_glossary">{glossary}: dictionary definition</string>
-    <string name="marker_pitch_accents">{pitch-accents}: pitch accent downstep notation, [1]</string>
     <string name="marker_pitch_accent_positions">{pitch-accent-positions}: pitch accent downstep position as a number</string>
     <string name="marker_writing">{writing}: term deinflected, written as it appeared in the text</string>
     <string name="marker_writing_furigana">{writing-furigana}: the written form with furigana (HTML ruby)</string>
@@ -95,7 +97,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" AN
     <string name="anki_no_decks">Nothing to choose from. Open AnkiDroid once and try again.</string>
     <string name="anki_header_fields">What goes into each field</string>
     <string name="anki_fields_help">Write text and markers like {expression} or {reading}; leave a field empty to keep it empty. The grey line shows an example.</string>
-    <string name="anki_insert_marker">Add marker</string>
+    <string name="anki_insert_marker">Add a marker</string>
     <string name="anki_markers_info">About the markers</string>
     <string name="anki_markers_info_intro">Write these markers in a field. Each is replaced by the information about the term you add. Text around them stays as typed.</string>
     <string name="anki_tags">Tags (separated by spaces)</string>
@@ -116,7 +118,6 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" AN
     <string name="marker_desc_furigana_plain">The term with its reading in brackets: 食[た]べる. For Anki fields that use {{furigana:…}}.</string>
     <string name="marker_desc_cloze_body">The term as it appeared in the text, inflected: 食べました.</string>
     <string name="marker_desc_glossary">The dictionary definitions, as a numbered list with parts of speech.</string>
-    <string name="marker_desc_pitch_accents">The pitch accent downstep notation from the pitch accent dictionary: [2]. Empty without one.</string>
     <string name="marker_desc_pitch_accent_positions">The pitch accent downstep positions as numbers: 2, 0. Empty without a pitch accent dictionary.</string>
     <string name="marker_desc_writing">The term deinflected but written the way it was in the text: 喰べる if the text had 喰べた, たべる if it had たべた.</string>
     <string name="marker_desc_writing_furigana">The written form with its reading over the kanji, as HTML ruby.</string>
