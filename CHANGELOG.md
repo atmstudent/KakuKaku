@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.0.0
+
+- Send terms to AnkiDroid: an icon next to each definition adds a card. In the Anki menu you choose the deck and note type, and write what goes into each field as text and markers (like Yomitan): {sentence}, {expression}, {reading}, {furigana}, {furigana-plain}, {cloze-body}, {glossary}, {pitch-accent-positions}, {writing}, {writing-furigana}, {writing-furigana-plain}. The info button explains each marker; a dropdown in every field adds them. Duplicates (same first field) are not added twice. Needs AnkiDroid and your permission to access it.
+- Word list: a second icon next to each definition saves the term with all its information. The Word list screen (menu) shows and deletes saved terms (tap one to see everything saved), lets you choose which information is shown and exported, exports TSV or CSV, and copies all text.
+- Tesseract, the text recognition of the old Kaku, can be chosen in Settings instead of ML Kit. It brings the Japanese language data with it, so the app grows to about 64 MB. It shows several choices per character; furigana is not stripped from its scans.
+- Vertical text is read from the rightmost column to the left.
+- A "Strip furigana" chip in the popup turns furigana stripping on or off at once, for the last scan or the shared text. It is the same setting as in Settings.
+- Settings: text recognition engine, and switches for the Anki and word list icons.
+- Fixed Pause sometimes leaving the notification saying "KakuKaku is running" with a Pause button.
+
 ## 2.0.0
 
 - Notification with buttons: Instant mode, Filter and Pause. Pause leaves the notification with a Start button, so you can continue from there. The buttons use the system colours on Android 12 and newer.
