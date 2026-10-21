@@ -14,6 +14,12 @@ import android.graphics.Point;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import io.github.atmstudent.kakukaku.AnkiActivity;
+import io.github.atmstudent.kakukaku.Anki.Marker;
+import io.github.atmstudent.kakukaku.Anki.AnkiSettings;
+import io.github.atmstudent.kakukaku.Anki.AnkiBridge;
+import io.github.atmstudent.kakukaku.Anki.AddResult;
+import android.content.Intent;
 import io.github.atmstudent.kakukaku.WordList.WordListStore;
 import io.github.atmstudent.kakukaku.Anki.TermContext;
 import java.util.Map;
@@ -85,6 +91,7 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
     private List<JmSearchResult> mLastResults = new ArrayList<>();
     private SearchInfo mLastSearch;
     private final java.util.Set<String> mSavedKeys = new java.util.HashSet<>();
+    private final java.util.Set<String> mAnkiKeys = new java.util.HashSet<>();
     // The text of a share-menu lookup before furigana was stripped (null for a scan)
     private String mRawText;
     // The card is at the bottom of the screen (the setting, in portrait only); swipes and the slide-out then go down
@@ -136,6 +143,7 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
     {
         mSearchedChars = new ArrayList<>();
         mSavedKeys.clear();
+        mAnkiKeys.clear();
         mRawText = null;
 
         mKanjiGrid.removeAllViews();
@@ -159,6 +167,7 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
     {
         mSearchedChars = new ArrayList<>();
         mSavedKeys.clear();
+        mAnkiKeys.clear();
 
         List<String> charList = KakuKakuTools.splitTextByChar(text);
         List<ISquareChar> squareCharList = new ArrayList<>();
@@ -545,10 +554,16 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
 
             HeadingStyle.apply(context, sb, headingStart, pitchStart, pitchEnd, reasonStart);
 
-            // Icons: save the term to the word list
+            // Icons: send the term to Anki, save it to the word list
             final JmSearchResult termResult = jmSearchResult;
-            boolean saved = mSavedKeys.contains(termKey(termResult));
-            appendIcon(sb, saved ? R.drawable.ic_check : R.drawable.ic_list_add, () -> saveToWordList(termResult));
+            if (AnkiSettings.INSTANCE.showAnkiIcon(context))
+            {
+                appendIcon(sb, mAnkiKeys.contains(termKey(termResult)) ? R.drawable.ic_check : R.drawable.ic_anki, () -> addToAnki(termResult));
+            }
+            if (AnkiSettings.INSTANCE.showListIcon(context))
+            {
+                appendIcon(sb, mSavedKeys.contains(termKey(termResult)) ? R.drawable.ic_check : R.drawable.ic_list_add, () -> saveToWordList(termResult));
+            }
 
             sb.append("\n");
             sb.append(getMeaning(jmSearchResult.getEntry()));
@@ -604,6 +619,66 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
                 ds.setUnderlineText(false);
             }
         }, start, start + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+    }
+
+    /** Adds a card for the term to AnkiDroid, as set up in the Anki menu */
+    private void addToAnki(final JmSearchResult result)
+    {
+        if (mLastSearch == null) return;
+
+        final Context appContext = context.getApplicationContext();
+        if (!AnkiBridge.INSTANCE.isInstalled(appContext))
+        {
+            Toast.makeText(appContext, R.string.anki_missing, Toast.LENGTH_LONG).show();
+            return;
+        }
+        if (!AnkiBridge.INSTANCE.hasPermission(appContext) || !AnkiSettings.INSTANCE.isConfigured(appContext))
+        {
+            // Setting up needs a screen of its own (the permission dialog cannot be shown from here)
+            Toast.makeText(appContext, R.string.anki_choose_first, Toast.LENGTH_LONG).show();
+            appContext.startActivity(new Intent(appContext, AnkiActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            return;
+        }
+
+        final Map<String, String> values = TermContext.Companion.from(result, mLastSearch.getText(), mLastSearch.getTextOffset()).values();
+        final String expression = values.get(Marker.EXPRESSION.getId());
+        new BackgroundTask<String[]>()
+        {
+            @Override
+            protected String[] doInBackground()
+            {
+                try
+                {
+                    long modelId = AnkiSettings.INSTANCE.modelId(appContext);
+                    java.util.List<String> fieldNames = AnkiBridge.INSTANCE.fieldNames(appContext, modelId);
+                    java.util.List<String> fields = AnkiSettings.INSTANCE.fillFields(appContext, fieldNames, values);
+                    java.util.Set<String> tags = new java.util.LinkedHashSet<>();
+                    for (String tag : AnkiSettings.INSTANCE.tags(appContext).trim().split("\\s+")) if (!tag.isEmpty()) tags.add(tag);
+
+                    AddResult added = AnkiBridge.INSTANCE.addNote(appContext, modelId, AnkiSettings.INSTANCE.modelName(appContext), fieldNames,
+                            AnkiSettings.INSTANCE.deckId(appContext), fields, tags, false);
+                    return new String[]{added.name(), null};
+                }
+                catch (Exception e)
+                {
+                    return new String[]{"FAILED", e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()};
+                }
+            }
+
+            @Override
+            protected void onPostExecute(String[] outcome)
+            {
+                if (outcome[0].equals("FAILED"))
+                {
+                    Toast.makeText(appContext, appContext.getString(R.string.anki_failed, outcome[1] != null ? outcome[1] : ""), Toast.LENGTH_LONG).show();
+                    return;
+                }
+                boolean added = outcome[0].equals("ADDED");
+                Toast.makeText(appContext, appContext.getString(added ? R.string.anki_added : R.string.anki_duplicate, expression), Toast.LENGTH_SHORT).show();
+                mAnkiKeys.add(termKey(result));
+                if (!mLastResults.isEmpty()) displayResults(mLastResults);
+            }
+        }.execute();
     }
 
     private void saveToWordList(final JmSearchResult result)

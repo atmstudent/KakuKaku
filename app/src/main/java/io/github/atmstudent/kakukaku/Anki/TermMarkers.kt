@@ -74,7 +74,7 @@ data class TermContext(
     companion object
     {
         /** The positions of "[1][0]" as "1, 0" */
-        fun pitchPositions(pitch: String): String = Regex("\\[(\\d+)]").findAll(pitch).joinToString(", ") { it.groupValues[1] }
+        fun pitchPositions(pitch: String): String = Regex("\\[(\\d+)\\]").findAll(pitch).joinToString(", ") { it.groupValues[1] }
 
         private fun escape(text: String) = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
@@ -109,7 +109,7 @@ data class TermContext(
 /** Fills a template such as "{expression}[{reading}]" with the values of the markers; unknown {names} stay as typed */
 object TemplateFiller
 {
-    private val MARKER = Regex("\\{([a-z-]+)}")
+    private val MARKER = Regex("\\{([a-z-]+)\\}")
 
     fun fill(template: String, values: Map<String, String>): String = MARKER.replace(template) { match -> values[match.groupValues[1]] ?: match.value }
 }

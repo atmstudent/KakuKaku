@@ -3,6 +3,9 @@
         android:id="@+id/menu_settings"
         android:title="@string/menu_settings" />
     <item
+        android:id="@+id/menu_anki"
+        android:title="@string/menu_anki" />
+    <item
         android:id="@+id/menu_word_list"
         android:title="@string/menu_word_list" />
     <item
