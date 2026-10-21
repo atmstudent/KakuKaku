@@ -17,12 +17,14 @@ Yes, it's vibecoded 😞
 
 ## What's new
 
-- Updated for modern Android: ML Kit Japanese text recognition instead of Tesseract; improved UX; Material 3 design with light and dark mode and dynamic colour.
-- Tesseract, the text recognition of the old Kaku, can be chosen in Settings instead of ML Kit.
+- Updated for modern Android: improved UX; Material 3 design with light and dark mode and dynamic colour.
 - Kana-only words are found.
 - Furigana are stripped automatically.
+- Send to Anki.
+- Save to word list.
 - Import your own dictionary in Yomitan format, including pitch accent and frequency dictionaries.
 - Built-in JMdict and KANJIDIC2 were updated.
+- Choose new ML Kit text recognition, or the old Tesseract.
 
 ## Install
 
