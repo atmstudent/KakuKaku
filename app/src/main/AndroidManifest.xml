@@ -60,6 +60,12 @@
             android:screenOrientation="portrait" />
 
         <activity
+            android:name=".WordListActivity"
+            android:exported="false"
+            android:label="@string/word_list_title"
+            android:screenOrientation="portrait" />
+
+        <activity
             android:name=".PassthroughActivity"
             android:label="KakuKaku"
             android:theme="@style/AppTheme.Invisible"

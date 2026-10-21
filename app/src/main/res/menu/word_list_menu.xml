@@ -1,0 +1,14 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/menu_word_list_information"
+        android:title="@string/word_list_information" />
+    <item
+        android:id="@+id/menu_word_list_export_tsv"
+        android:title="@string/word_list_export_tsv" />
+    <item
+        android:id="@+id/menu_word_list_export_csv"
+        android:title="@string/word_list_export_csv" />
+    <item
+        android:id="@+id/menu_word_list_clear"
+        android:title="@string/word_list_clear" />
+</menu>

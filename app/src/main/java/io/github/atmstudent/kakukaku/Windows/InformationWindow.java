@@ -14,6 +14,16 @@ import android.graphics.Point;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import io.github.atmstudent.kakukaku.WordList.WordListStore;
+import io.github.atmstudent.kakukaku.Anki.TermContext;
+import java.util.Map;
+import android.widget.Toast;
+import android.text.style.ImageSpan;
+import android.text.style.ClickableSpan;
+import android.text.method.LinkMovementMethod;
+import android.text.TextPaint;
+import android.text.Spanned;
+import android.graphics.drawable.Drawable;
 import io.github.atmstudent.kakukaku.AppSettings;
 import android.widget.TextView;
 import android.util.TypedValue;
@@ -71,6 +81,10 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
     private Searcher mSearcher;
     private boolean mTextOnlyLookup;
     private TextView mFuriganaToggle;
+    // The results on show and the search they came from (for saving a term), and the terms saved since the popup opened
+    private List<JmSearchResult> mLastResults = new ArrayList<>();
+    private SearchInfo mLastSearch;
+    private final java.util.Set<String> mSavedKeys = new java.util.HashSet<>();
     // The text of a share-menu lookup before furigana was stripped (null for a scan)
     private String mRawText;
     // The card is at the bottom of the screen (the setting, in portrait only); swipes and the slide-out then go down
@@ -89,6 +103,11 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
         mKanjiGrid = window.findViewById(R.id.kanji_grid);
         mDictResults = window.findViewById(R.id.dict_results);
         mFuriganaToggle = window.findViewById(R.id.furigana_toggle);
+        // The icons next to the definitions are links
+        for (int i = 0; i < mDictResults.getChildCount(); i++)
+        {
+            ((TextView) mDictResults.getChildAt(i)).setMovementMethod(LinkMovementMethod.getInstance());
+        }
         mFuriganaToggle.setOnClickListener(v -> toggleFurigana());
 
         mKanjiGrid.setDependencies(windowCoordinator, this);
@@ -116,6 +135,7 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
     public void setResult(DisplayData displayData)
     {
         mSearchedChars = new ArrayList<>();
+        mSavedKeys.clear();
         mRawText = null;
 
         mKanjiGrid.removeAllViews();
@@ -138,6 +158,7 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
     private void showText(String text)
     {
         mSearchedChars = new ArrayList<>();
+        mSavedKeys.clear();
 
         List<String> charList = KakuKakuTools.splitTextByChar(text);
         List<ISquareChar> squareCharList = new ArrayList<>();
@@ -448,6 +469,9 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
     {
         windowCoordinator.getWindow(Constants.WINDOW_INSTANT_KANJI).hide();
 
+        mLastResults = results;
+        mLastSearch = search;
+
         if (results.size() > 0)
         {
             displayResults(results);
@@ -521,6 +545,11 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
 
             HeadingStyle.apply(context, sb, headingStart, pitchStart, pitchEnd, reasonStart);
 
+            // Icons: save the term to the word list
+            final JmSearchResult termResult = jmSearchResult;
+            boolean saved = mSavedKeys.contains(termKey(termResult));
+            appendIcon(sb, saved ? R.drawable.ic_check : R.drawable.ic_list_add, () -> saveToWordList(termResult));
+
             sb.append("\n");
             sb.append(getMeaning(jmSearchResult.getEntry()));
             sb.append("\n\n");
@@ -541,6 +570,69 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
             // No animation: the text is replaced in place
             mDictResults.setCurrentText(sb);
         }
+    }
+
+    private static String termKey(JmSearchResult result)
+    {
+        return result.getEntry().getKanji() + "|" + result.getEntry().getReadings();
+    }
+
+    /** An icon that can be tapped, after the heading of a result */
+    private void appendIcon(SpannableStringBuilder sb, int drawableRes, final Runnable onClick)
+    {
+        Drawable icon = ContextCompat.getDrawable(context, drawableRes).mutate();
+        int size = KakuKakuTools.dpToPx(context, 22);
+        icon.setBounds(0, 0, size, size);
+        // The colour of the text, which follows the popup theme
+        icon.setTint(((TextView) mDictResults.getCurrentView()).getCurrentTextColor());
+
+        sb.append("  ");
+        int start = sb.length();
+        sb.append("\uFFFC");
+        sb.setSpan(new ImageSpan(icon, ImageSpan.ALIGN_BOTTOM), start, start + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        sb.setSpan(new ClickableSpan()
+        {
+            @Override
+            public void onClick(@NotNull View widget)
+            {
+                onClick.run();
+            }
+
+            @Override
+            public void updateDrawState(@NotNull TextPaint ds)
+            {
+                ds.setUnderlineText(false);
+            }
+        }, start, start + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+    }
+
+    private void saveToWordList(final JmSearchResult result)
+    {
+        if (mLastSearch == null) return;
+
+        final Context appContext = context.getApplicationContext();
+        final Map<String, String> values = TermContext.Companion.from(result, mLastSearch.getText(), mLastSearch.getTextOffset()).values();
+        new BackgroundTask<Boolean>()
+        {
+            @Override
+            protected Boolean doInBackground()
+            {
+                try { return WordListStore.Companion.get(appContext).add(values); } catch (Exception e) { return null; }
+            }
+
+            @Override
+            protected void onPostExecute(Boolean added)
+            {
+                if (added == null)
+                {
+                    Toast.makeText(appContext, "Could not save the word", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                Toast.makeText(appContext, added ? R.string.word_list_saved : R.string.word_list_already, Toast.LENGTH_SHORT).show();
+                mSavedKeys.add(termKey(result));
+                if (!mLastResults.isEmpty()) displayResults(mLastResults);
+            }
+        }.execute();
     }
 
     private String getMeaning(EntryOptimized entry)
