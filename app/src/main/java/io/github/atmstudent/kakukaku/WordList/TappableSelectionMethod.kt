@@ -41,6 +41,13 @@ class TappableSelectionMethod : ArrowKeyMovementMethod()
                 val isTap = !mMoved && event.eventTime - mDownTime < ViewConfiguration.getLongPressTimeout()
                 if (isTap && Selection.getSelectionStart(buffer) == Selection.getSelectionEnd(buffer))
                 {
+                    val icon = rightEdgeIconAt(widget, buffer, event)
+                    if (icon != null)
+                    {
+                        icon.onClick()
+                        return true
+                    }
+
                     val span = spanAt(widget, buffer, event)
                     if (span != null)
                     {
@@ -52,6 +59,22 @@ class TappableSelectionMethod : ArrowKeyMovementMethod()
         }
 
         return super.onTouchEvent(widget, buffer, event)
+    }
+
+    /** The icon drawn at the right edge of the line that was touched, if the touch is on it (with a little room around it) */
+    private fun rightEdgeIconAt(widget: TextView, buffer: Spannable, event: MotionEvent): RightEdgeIconSpan?
+    {
+        val layout = widget.layout ?: return null
+        val x = event.x - widget.totalPaddingLeft + widget.scrollX
+        val y = event.y - widget.totalPaddingTop + widget.scrollY
+        val room = 12 * widget.resources.displayMetrics.density
+
+        for (span in buffer.getSpans(0, buffer.length, RightEdgeIconSpan::class.java))
+        {
+            val line = layout.getLineForOffset(buffer.getSpanStart(span))
+            if (y >= layout.getLineTop(line) && y <= layout.getLineBottom(line) && x >= span.lineWidth() - span.width - room) return span
+        }
+        return null
     }
 
     private fun spanAt(widget: TextView, buffer: Spannable, event: MotionEvent): ClickableSpan?
