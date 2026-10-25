@@ -30,13 +30,18 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <LinearLayout
-            android:id="@+id/word_list"
+        <!-- All saved terms in one text, so a selection can run across lines and terms -->
+        <TextView
+            android:id="@+id/word_list_text"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
+            android:lineSpacingMultiplier="1.1"
             android:paddingStart="16dp"
+            android:paddingTop="8dp"
             android:paddingEnd="16dp"
-            android:paddingBottom="24dp" />
+            android:paddingBottom="24dp"
+            android:textAppearance="?attr/textAppearanceBodyLarge"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textIsSelectable="true" />
     </ScrollView>
 </LinearLayout>

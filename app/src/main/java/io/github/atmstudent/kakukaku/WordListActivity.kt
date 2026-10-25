@@ -14,13 +14,14 @@ import io.github.atmstudent.kakukaku.Anki.Marker
 import io.github.atmstudent.kakukaku.Anki.MarkerLabels
 import io.github.atmstudent.kakukaku.Dictionary.MetaKind
 import io.github.atmstudent.kakukaku.Dictionary.MetaSelection
+import io.github.atmstudent.kakukaku.WordList.CenteredImageSpan
+import io.github.atmstudent.kakukaku.WordList.TappableSelectionMethod
 import io.github.atmstudent.kakukaku.WordList.WordListDisplay
 import io.github.atmstudent.kakukaku.WordList.SavedTerm
 import io.github.atmstudent.kakukaku.WordList.WordListExport
 import io.github.atmstudent.kakukaku.WordList.WordListSettings
 import io.github.atmstudent.kakukaku.WordList.WordListStore
 import io.github.atmstudent.kakukaku.databinding.ActivityWordListBinding
-import io.github.atmstudent.kakukaku.databinding.ItemSavedTermBinding
 import java.util.concurrent.Executors
 import java.util.concurrent.RejectedExecutionException
 
@@ -92,38 +93,88 @@ class WordListActivity : AppCompatActivity()
     private fun show(terms: List<SavedTerm>)
     {
         mTerms = terms
-        val list = mBinding.wordList
-        list.removeAllViews()
         mBinding.wordListEmpty.visibility = if (terms.isEmpty()) View.VISIBLE else View.GONE
 
+        val text = mBinding.wordListText
+        val onSurface = com.google.android.material.color.MaterialColors.getColor(text, com.google.android.material.R.attr.colorOnSurface)
+        val onSurfaceVariant = com.google.android.material.color.MaterialColors.getColor(text, com.google.android.material.R.attr.colorOnSurfaceVariant)
+        val iconSize = (22 * resources.displayMetrics.density).toInt()
+
+        fun icon(drawable: Int): android.graphics.drawable.Drawable
+        {
+            val d = androidx.core.content.ContextCompat.getDrawable(this, drawable)!!.mutate()
+            d.setTint(onSurfaceVariant)
+            d.setBounds(0, 0, iconSize, iconSize)
+            return d
+        }
+
+        val sb = android.text.SpannableStringBuilder()
         for (term in terms)
         {
-            val row = ItemSavedTermBinding.inflate(LayoutInflater.from(this), list, false)
+            val entryStart = sb.length
 
-            // The same as the popup shows: dictionary form, kana, the pitch accent if a pitch accent dictionary is selected,
-            // and the definitions. Long ones are cut short until the entry is tapped.
-            row.savedTitle.text = WordListDisplay.heading(term.values, mShowPitch)
+            // Like the popup: dictionary form, kana, the pitch accent if a pitch accent dictionary is selected, then the
+            // definitions. A long one is cut short and has an arrow; tapping the entry opens or closes it.
             val glossary = WordListDisplay.glossary(term.values)
+            val expandable = glossary.length > COLLAPSED_LENGTH
             val open = term.id in mExpanded
-            row.savedSubtitle.text = glossary
-            row.savedSubtitle.maxLines = if (open) Int.MAX_VALUE else 2
-            row.savedSubtitle.visibility = if (glossary.isEmpty()) View.GONE else View.VISIBLE
 
-            val toggle = View.OnClickListener {
-                if (open) mExpanded.remove(term.id) else mExpanded.add(term.id)
-                show(mTerms)
-            }
-            row.root.setOnClickListener(toggle)
-            row.savedTitle.setOnClickListener(toggle)
-            row.savedSubtitle.setOnClickListener(toggle)
-            row.savedDelete.setOnClickListener {
-                mExecutor.execute {
-                    WordListStore.get(this).delete(term.id)
-                    runOnUiThread { mExpanded.remove(term.id); refresh() }
+            val headingStart = sb.length
+            sb.append(WordListDisplay.heading(term.values, mShowPitch))
+            sb.setSpan(android.text.style.StyleSpan(android.graphics.Typeface.BOLD), headingStart, sb.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            sb.setSpan(android.text.style.RelativeSizeSpan(1.2f), headingStart, sb.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            sb.setSpan(android.text.style.ForegroundColorSpan(onSurface), headingStart, sb.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+            if (expandable) appendIcon(sb, CenteredImageSpan(icon(if (open) R.drawable.ic_arrow_drop_up else R.drawable.ic_arrow_drop_down)), null)
+            appendIcon(sb, CenteredImageSpan(icon(R.drawable.ic_delete)), object : android.text.style.ClickableSpan()
+            {
+                override fun onClick(widget: View)
+                {
+                    mExecutor.execute {
+                        WordListStore.get(this@WordListActivity).delete(term.id)
+                        runOnUiThread { mExpanded.remove(term.id); refresh() }
+                    }
                 }
+
+                override fun updateDrawState(ds: android.text.TextPaint) {}
+            })
+
+            if (glossary.isNotEmpty())
+            {
+                sb.append("\n")
+                sb.append(if (expandable && !open) glossary.take(COLLAPSED_LENGTH).trimEnd() + "…" else glossary)
             }
-            list.addView(row.root)
+
+            if (expandable)
+            {
+                sb.setSpan(object : android.text.style.ClickableSpan()
+                {
+                    override fun onClick(widget: View)
+                    {
+                        if (open) mExpanded.remove(term.id) else mExpanded.add(term.id)
+                        show(mTerms)
+                    }
+
+                    override fun updateDrawState(ds: android.text.TextPaint) {}
+                }, entryStart, sb.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            }
+
+            sb.append("\n\n")
         }
+
+        text.movementMethod = TappableSelectionMethod()
+        text.setText(sb.trimEnd(), android.widget.TextView.BufferType.SPANNABLE)
+    }
+
+    /** A space, then [image] (tappable when [tap] is given), at the end of [sb] */
+    private fun appendIcon(sb: android.text.SpannableStringBuilder, image: CenteredImageSpan, tap: android.text.style.ClickableSpan?)
+    {
+        sb.append("  ")
+        val start = sb.length
+        // A space, not the usual placeholder character, so copied text has no stray symbols
+        sb.append(" ")
+        sb.setSpan(image, start, start + 1, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        if (tap != null) sb.setSpan(tap, start, start + 1, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
     }
 
     /** The markers shown and exported; all of them are stored, so this can be changed afterwards */
@@ -176,5 +227,11 @@ class WordListActivity : AppCompatActivity()
             }
             runOnUiThread { if (!isDestroyed) Snackbar.make(mBinding.root, message, Snackbar.LENGTH_LONG).show() }
         }
+    }
+
+    companion object
+    {
+        /** Definitions longer than this are cut short until the entry is tapped */
+        private const val COLLAPSED_LENGTH = 90
     }
 }
