@@ -7,6 +7,7 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.graphics.PixelFormat;
 import android.os.Build;
+import android.text.Layout;
 import android.text.SpannableStringBuilder;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -560,16 +561,37 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
             headingText.setText(sb);
             heading.addView(headingText, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
+            final List<ImageView> icons = new ArrayList<>();
             if (AnkiSettings.INSTANCE.showAnkiIcon(context))
             {
-                addIconButton(heading, mAnkiKeys.contains(termKey(jmSearchResult)) ? R.drawable.ic_check : R.drawable.ic_anki, textColor,
-                        R.string.anki_add_description, () -> addToAnki(jmSearchResult));
+                icons.add(addIconButton(heading, mAnkiKeys.contains(termKey(jmSearchResult)) ? R.drawable.ic_check : R.drawable.ic_anki, textColor,
+                        R.string.anki_add_description, () -> addToAnki(jmSearchResult)));
             }
             if (AnkiSettings.INSTANCE.showListIcon(context))
             {
-                addIconButton(heading, mSavedKeys.contains(termKey(jmSearchResult)) ? R.drawable.ic_check : R.drawable.ic_list_add, textColor,
-                        R.string.word_list_save_description, () -> saveToWordList(jmSearchResult));
+                icons.add(addIconButton(heading, mSavedKeys.contains(termKey(jmSearchResult)) ? R.drawable.ic_check : R.drawable.ic_list_add, textColor,
+                        R.string.word_list_save_description, () -> saveToWordList(jmSearchResult)));
             }
+
+            // The icons are as tall as the first line of the heading and centred on it, so they neither sit lower than the
+            // text nor make the row taller (a row of 40dp icons left a gap between the heading and the definitions)
+            headingText.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+                Layout layout = headingText.getLayout();
+                if (layout == null || layout.getLineCount() == 0) return;
+                final int lineHeight = layout.getLineBottom(0) - layout.getLineTop(0);
+                for (ImageView icon : icons)
+                {
+                    if (icon.getLayoutParams().height != lineHeight)
+                    {
+                        icon.post(() -> {
+                            icon.getLayoutParams().height = lineHeight;
+                            int vertical = Math.round(lineHeight * 0.1f);
+                            icon.setPadding(icon.getPaddingLeft(), vertical, icon.getPaddingRight(), vertical);
+                            icon.requestLayout();
+                        });
+                    }
+                }
+            });
             row.addView(heading, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
             TextView meaning = new TextView(mDictResults.getContext());
@@ -595,17 +617,20 @@ public class InformationWindow extends Window implements Searcher.SearchDictDone
     }
 
     /** An icon button at the right end of a result's heading */
-    private void addIconButton(LinearLayout parent, int drawableRes, int color, int descriptionRes, final Runnable onClick)
+    private ImageView addIconButton(LinearLayout parent, int drawableRes, int color, int descriptionRes, final Runnable onClick)
     {
         ImageView button = new ImageView(parent.getContext());
         Drawable icon = ContextCompat.getDrawable(context, drawableRes).mutate();
         icon.setTint(color);
         button.setImageDrawable(icon);
         button.setContentDescription(context.getString(descriptionRes));
-        int padding = KakuKakuTools.dpToPx(context, 8);
-        button.setPadding(padding, padding, padding, padding);
+        // Sized to the heading's first line once that is laid out (see displayResults)
+        int horizontal = KakuKakuTools.dpToPx(context, 8);
+        button.setPadding(horizontal, 0, horizontal, 0);
+        button.setScaleType(ImageView.ScaleType.FIT_CENTER);
         button.setOnClickListener(v -> onClick.run());
-        parent.addView(button, new LinearLayout.LayoutParams(KakuKakuTools.dpToPx(context, 40), KakuKakuTools.dpToPx(context, 40)));
+        parent.addView(button, new LinearLayout.LayoutParams(KakuKakuTools.dpToPx(context, 40), KakuKakuTools.dpToPx(context, 20)));
+        return button;
     }
 
     /** Adds a card for the term to AnkiDroid, as set up in the Anki menu */

@@ -59,10 +59,8 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\" AN
     <string name="menu_word_list">Word list</string>
     <string name="word_list_title">Word list</string>
     <string name="word_list_empty">No saved words yet. Tap the list icon next to a definition to save it here.</string>
-    <string name="word_list_information">Information included…</string>
-    <string name="word_list_information_title">Information shown and exported</string>
-    <string name="word_list_copy">Copy all text</string>
-    <string name="word_list_copied">Copied %1$d words</string>
+    <string name="word_list_information">Information exported…</string>
+    <string name="word_list_information_title">Information exported</string>
     <string name="word_list_export_tsv">Export as TSV</string>
     <string name="word_list_export_csv">Export as CSV</string>
     <string name="word_list_clear">Clear the list</string>

@@ -12,7 +12,9 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import io.github.atmstudent.kakukaku.Anki.Marker
 import io.github.atmstudent.kakukaku.Anki.MarkerLabels
-import io.github.atmstudent.kakukaku.WordList.HtmlText
+import io.github.atmstudent.kakukaku.Dictionary.MetaKind
+import io.github.atmstudent.kakukaku.Dictionary.MetaSelection
+import io.github.atmstudent.kakukaku.WordList.WordListDisplay
 import io.github.atmstudent.kakukaku.WordList.SavedTerm
 import io.github.atmstudent.kakukaku.WordList.WordListExport
 import io.github.atmstudent.kakukaku.WordList.WordListSettings
@@ -28,6 +30,8 @@ class WordListActivity : AppCompatActivity()
     private lateinit var mBinding: ActivityWordListBinding
     private val mExecutor = Executors.newSingleThreadExecutor()
     private var mTerms: List<SavedTerm> = emptyList()
+    // Whether a pitch accent dictionary is selected: only then is the accent shown
+    private var mShowPitch = false
     // The terms opened to show everything that was saved about them
     private val mExpanded = HashSet<Long>()
 
@@ -55,7 +59,6 @@ class WordListActivity : AppCompatActivity()
                 R.id.menu_word_list_information -> chooseInformation()
                 R.id.menu_word_list_export_tsv -> mTsvPicker.launch("word-list.tsv")
                 R.id.menu_word_list_export_csv -> mCsvPicker.launch("word-list.csv")
-                R.id.menu_word_list_copy -> copyAll()
                 R.id.menu_word_list_clear -> confirmClear()
             }
             true
@@ -76,7 +79,8 @@ class WordListActivity : AppCompatActivity()
         {
             mExecutor.execute {
                 val terms = WordListStore.get(this).list()
-                runOnUiThread { if (!isDestroyed) show(terms) }
+                val showPitch = MetaSelection.get(this, MetaKind.PITCH) != MetaSelection.NONE
+                runOnUiThread { if (!isDestroyed) { mShowPitch = showPitch; show(terms) } }
             }
         }
         catch (e: RejectedExecutionException)
@@ -92,26 +96,26 @@ class WordListActivity : AppCompatActivity()
         list.removeAllViews()
         mBinding.wordListEmpty.visibility = if (terms.isEmpty()) View.VISIBLE else View.GONE
 
-        val markers = WordListSettings.markers(this).filter { it != Marker.EXPRESSION && it != Marker.READING }
         for (term in terms)
         {
             val row = ItemSavedTermBinding.inflate(LayoutInflater.from(this), list, false)
-            val reading = term.values[Marker.READING.id] ?: ""
-            row.savedTitle.text = if (reading.isEmpty() || reading == term.expression) term.expression else "${term.expression} ($reading)"
 
-            // Closed: the chosen information, cut short. Open (tap the term): everything that was saved about it.
+            // The same as the popup shows: dictionary form, kana, the pitch accent if a pitch accent dictionary is selected,
+            // and the definitions. Long ones are cut short until the entry is tapped.
+            row.savedTitle.text = WordListDisplay.heading(term.values, mShowPitch)
+            val glossary = WordListDisplay.glossary(term.values)
             val open = term.id in mExpanded
-            val lines = if (open)
-                Marker.values().filter { (term.values[it.id] ?: "").isNotEmpty() }.map { "{${it.id}}\n" + HtmlText.plain(term.values[it.id] ?: "") }
-            else
-                markers.map { HtmlText.plain(term.values[it.id] ?: "") }.filter { it.isNotEmpty() }
-            row.savedSubtitle.text = lines.joinToString(if (open) "\n\n" else "\n")
+            row.savedSubtitle.text = glossary
             row.savedSubtitle.maxLines = if (open) Int.MAX_VALUE else 2
-            row.savedSubtitle.visibility = if (row.savedSubtitle.text.isEmpty()) View.GONE else View.VISIBLE
-            row.root.setOnClickListener {
+            row.savedSubtitle.visibility = if (glossary.isEmpty()) View.GONE else View.VISIBLE
+
+            val toggle = View.OnClickListener {
                 if (open) mExpanded.remove(term.id) else mExpanded.add(term.id)
                 show(mTerms)
             }
+            row.root.setOnClickListener(toggle)
+            row.savedTitle.setOnClickListener(toggle)
+            row.savedSubtitle.setOnClickListener(toggle)
             row.savedDelete.setOnClickListener {
                 mExecutor.execute {
                     WordListStore.get(this).delete(term.id)
@@ -120,16 +124,6 @@ class WordListActivity : AppCompatActivity()
             }
             list.addView(row.root)
         }
-    }
-
-    /** All saved terms, as the text of the TSV export, onto the clipboard */
-    private fun copyAll()
-    {
-        if (mTerms.isEmpty()) return
-        val table = WordListExport.table(mTerms, WordListSettings.markers(this), true)
-        val clipboard = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-        clipboard.setPrimaryClip(android.content.ClipData.newPlainText(null, WordListExport.tsv(table)))
-        Snackbar.make(mBinding.root, getString(R.string.word_list_copied, mTerms.size), Snackbar.LENGTH_SHORT).show()
     }
 
     /** The markers shown and exported; all of them are stored, so this can be changed afterwards */
@@ -144,7 +138,6 @@ class WordListActivity : AppCompatActivity()
                 }
                 .setPositiveButton(android.R.string.ok) { _, _ ->
                     WordListSettings.setMarkers(this, chosen)
-                    show(mTerms)
                 }
                 .setNegativeButton(R.string.dictionary_cancel, null)
                 .show()
