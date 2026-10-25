@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.1.0
+
+- Word list: terms are shown as in the popup (dictionary form, kana, the pitch accent while a pitch accent dictionary is selected, and the numbered definitions). The whole list is one text you can select across lines and terms. Definitions of more than two lines are cut short and end in an arrow; one tap on the entry opens or closes it. The trash icon is at the right edge. "Copy all text" is gone (select and copy instead), and "Information included" is now "Information exported", since it only decides what the export contains.
+- Popup: the Anki and word list icons are at the right edge of each heading, lined up with the text, and no longer leave a gap before the definitions.
+
 ## 3.0.0
 
 - Send terms to AnkiDroid: an icon next to each definition adds a card. In the Anki menu you choose the deck and note type, and write what goes into each field as text and markers (like Yomitan): {sentence}, {expression}, {reading}, {furigana}, {furigana-plain}, {cloze-body}, {glossary}, {pitch-accent-positions}, {writing}, {writing-furigana}, {writing-furigana-plain}. The info button explains each marker; a dropdown in every field adds them. Duplicates (same first field) are not added twice. Needs AnkiDroid and your permission to access it.
